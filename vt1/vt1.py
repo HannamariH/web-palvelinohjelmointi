@@ -1,47 +1,119 @@
 import simplejson as json
 import urllib.request
-from flask import Flask
+import urllib.parse
+from flask import Flask, Response, request
+from random import randint
 app = Flask(__name__)
 
-@app.route('/') #tämä rivi kertoo osoitteen, josta tämä sovellus löytyy
+@app.route('/')
 def load_data():
-    result = ""
 
-    with urllib.request.urlopen("http://hazor.eu.pythonanywhere.com/2021/data2021.json") as response:
+    with urllib.request.urlopen("http://hazor.eu.pythonanywhere.com/2022/data2022.json") as response:
+        global data
         data = json.load(response)
 
-        alpha_list = teams_alphabetical(data)
+        #luodaan query parametrien perusteella lisättävä joukkue
+        params = request.args
+        team_name = params.get("nimi")
+        if (team_name):
+            team_name = urllib.parse.unquote(team_name)
+        team_members = params.getlist("jasen")
+        if (team_members):
+            for member in team_members:
+                member = urllib.parse.unquote(member)
+        team_set = params.get("sarja")
 
-        """for x in data["items"]["item"]:
-            result += x["name"]
-            for topping in x["topping"]:
-                try:
-                    result +=  topping["type"]
-                except KeyError:
-                    pass
-            try:
-                filling = x["fillings"]["filling"]
-                for x in filling:
-                    result += x["name"]
-            except KeyError:
-                pass"""
+        if (team_name and team_set):
+            newTeam = {
+                "nimi": team_name,
+                "jasenet": team_members,
+                "id": "",
+                "leimaukset": [],
+                "leimaustapa": []
+            }
 
+            #lisätään joukkue sarjaan
+            for set in data["sarjat"]:
+                if set["nimi"].upper() == team_set.upper():
+                    newSet = add_team(set, newTeam)
+                    #korvataan sarjalla aiempi sarja
+                    set = newSet
+
+        with open('data.json', 'w', encoding="utf-8") as outfile:
+            json.dump(data, outfile)
+
+        alpha_list = teams_alphabetical()
+        integer_cps = starts_with_integer()
         text = ""
         for x in alpha_list:
-            text += x + "\n\n"
+            text = text + x + "\n"
+        text = text + "\n" + integer_cps        
 
-    return text
+    return Response(text, mimetype="text/plain;charset=UTF-8")
 
-# TODO: virheenkäsittely, jos/kun sarja/joukkue/nimi puuttuu
-def teams_alphabetical(data):
+
+def teams_alphabetical():
 
     team_list = []
 
     for x in data["sarjat"]:
         for y in x["joukkueet"]:
-            team_list.append(y["nimi"])
+            try:
+                team_list.append(y["nimi"])
+            except KeyError:
+                pass
 
-    team_list.sort()
+    #järjestää listan alkiot kirjainkoosta välittämättä
+    team_list.sort(key = lambda x: x.lower())
+
     return team_list
 
 
+def add_team(set, team):
+
+    #tarkistaa, että datassa on ko. sarja
+    setNames = []
+    for s in data["sarjat"]:
+        setNames.append(s["nimi"])
+    if set["nimi"] not in setNames:
+        #palauta set sellaisenaan
+        return set
+
+    #tarkistaa, että joukkueessa on oikeat avaimet
+    keys = ["nimi", "jasenet", "id", "leimaustapa", "leimaukset"]
+    for key in keys:
+        if key not in team.keys():
+            #palauta set sellaisenaan
+            return set
+
+    #tarkistaa, että joukkueen nimi on uniikki
+    newTeamNameStripped = team["nimi"].strip().upper()
+    for s in data["sarjat"]:    
+        for teams in s["joukkueet"]:       
+            candidateNameStripped = teams["nimi"].strip().upper()
+            if candidateNameStripped == newTeamNameStripped:        
+                #palauta set sellaisenaan    
+                return set
+    
+    id = getId()
+    team["id"] = id
+
+    #lisää joukkue
+    set["joukkueet"].append(team)
+    return set
+
+def getId():
+    id = randint(1000000000000000, 9999999999999999)
+    for set in data["sarjat"]:    
+        for team in set["joukkueet"]:
+            if team["id"] == id:
+                return getId()
+    return id
+
+def starts_with_integer():
+        cps = ""
+        for cp in data["rastit"]:    
+            if cp["koodi"][0].isdigit():
+                cps+=cp["koodi"] + ";"
+        cps = cps[:-1]
+        return cps
