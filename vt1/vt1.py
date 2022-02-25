@@ -25,7 +25,7 @@ def load_data():
         state = params.get("tila")
 
         if (state == "delete"):
-            data = deleteTeam(team_set, team_name)
+            deleteTeam(team_set, team_name)
 
         if (state == "insert"):
             newTeam = {
@@ -130,10 +130,5 @@ def deleteTeam(set_name, team_name):
             #etsitään oikea joukkue
             for t in range(len(setti)):
                 if setti["joukkueet"][t]["nimi"].strip().upper() == team_name.strip().upper():
-                    teams = setti["joukkueet"]
-                    print(teams)
-                    for i in range(len(teams)):
-                        if teams[i]["nimi"].strip().upper() == team_name.strip().upper():
-                            del data["sarjat"][s]["joukkueet"][t]["nimi"]
-                            break
-                    return data
+                    del data["sarjat"][s]["joukkueet"][t]["nimi"]
+                    break
