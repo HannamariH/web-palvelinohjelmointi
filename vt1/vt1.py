@@ -1,4 +1,4 @@
-import simplejson as json
+import json
 import urllib.request
 import urllib.parse
 from flask import Flask, Response, request
@@ -22,8 +22,12 @@ def load_data():
             for member in team_members:
                 member = urllib.parse.unquote(member)
         team_set = params.get("sarja")
+        state = params.get("tila")
 
-        if (team_name and team_set):
+        if (state == "delete"):
+            data = deleteTeam(team_set, team_name)
+
+        if (state == "insert"):
             newTeam = {
                 "nimi": team_name,
                 "jasenet": team_members,
@@ -117,3 +121,19 @@ def starts_with_integer():
                 cps+=cp["koodi"] + ";"
         cps = cps[:-1]
         return cps
+
+def deleteTeam(set_name, team_name):
+    #etsitään oikea sarja
+    for s in range(len(data["sarjat"])):
+        if data["sarjat"][s]["nimi"].strip().upper() == set_name.strip().upper():
+            setti = data["sarjat"][s]
+            #etsitään oikea joukkue
+            for t in range(len(setti)):
+                if setti["joukkueet"][t]["nimi"].strip().upper() == team_name.strip().upper():
+                    teams = setti["joukkueet"]
+                    print(teams)
+                    for i in range(len(teams)):
+                        if teams[i]["nimi"].strip().upper() == team_name.strip().upper():
+                            del data["sarjat"][s]["joukkueet"][t]["nimi"]
+                            break
+                    return data
