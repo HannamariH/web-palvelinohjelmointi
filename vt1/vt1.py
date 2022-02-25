@@ -8,7 +8,13 @@ app = Flask(__name__)
 @app.route('/')
 def load_data():
 
-    with urllib.request.urlopen("http://hazor.eu.pythonanywhere.com/2022/data2022.json") as response:
+    reset = request.args.get("reset")
+    if reset == "1":
+        url = "http://hazor.eu.pythonanywhere.com/2022/data2022.json"
+    else:
+        url = "https://hahelle.eu.pythonanywhere.com/data.json"
+
+    with urllib.request.urlopen(url) as response:
         global data
         data = json.load(response)
 
@@ -128,7 +134,7 @@ def deleteTeam(set_name, team_name):
         if data["sarjat"][s]["nimi"].strip().upper() == set_name.strip().upper():
             setti = data["sarjat"][s]
             #etsitään oikea joukkue
-            for t in range(len(setti)):
+            for t in range(len(setti["joukkueet"])):
                 if setti["joukkueet"][t]["nimi"].strip().upper() == team_name.strip().upper():
-                    del data["sarjat"][s]["joukkueet"][t]["nimi"]
+                    del data["sarjat"][s]["joukkueet"][t]
                     break
