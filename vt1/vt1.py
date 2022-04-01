@@ -1,4 +1,5 @@
 import json
+from logging import FileHandler
 import urllib.request
 import urllib.parse
 from flask import Flask, Response, request
@@ -21,26 +22,31 @@ def load_data():
 
         # luodaan query parametrien perusteella lisättävä joukkue
         params = request.args
-        team_name = params.get("nimi")
-        if (team_name):
-            team_name = urllib.parse.unquote(team_name)
-        team_members = params.getlist("jasen")
-        if (team_members):
-            for member in team_members:
-                member = urllib.parse.unquote(member)
-        team_set = params.get("sarja")
         state = params.get("tila")
 
         if (state == "delete"):
-            delete_team(team_set, team_name)
+            delete_team(team_set, team_name)    
 
         if (state == "insert"):
+
+            team_name = params.get("nimi")
+            #unquote purkaisi Meik\u00e4l\u00e4isen Meikäläiseksi: onko tarkoitus?
+            #hazorin rakenteessa ei ole purettu!
+            #if (team_name):
+            #    team_name = urllib.parse.unquote(team_name)
+            team_members = params.getlist("jasen")
+            #if (team_members):
+            #    for member in team_members:
+            #        member = urllib.parse.unquote(member)
+            team_set = params.get("sarja")     
+            stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
+
             newTeam = {
                 "nimi": team_name,
                 "jasenet": team_members,
                 "id": "",
                 "leimaukset": [],
-                "leimaustapa": []
+                "leimaustapa": stamp_methods
             }
 
             # lisätään joukkue sarjaan
@@ -55,15 +61,25 @@ def load_data():
 
         alpha_list = teams_alphabetical()
         integer_cps = starts_with_integer()
+        results = print_results()
         text = ""
         for x in alpha_list:
             text = text + x + "\n"
-        text = text + "\n" + integer_cps
-        results = print_results()
-        text = text + "\n\n" + results
+        text = text + "\n" + integer_cps + "\n\n" + results
 
     return Response(text, mimetype="text/plain;charset=UTF-8")
 
+def get_stamp_indexes(stamps):
+    stamping_methods = data["leimaustapa"]
+    print(stamping_methods)
+    indexes = []
+    for stamp in stamps:
+        try:
+            print(stamping_methods.index(stamp))
+            indexes.append(stamping_methods.index(stamp))
+        except ValueError:
+            continue            
+    return indexes
 
 def teams_alphabetical():
 
