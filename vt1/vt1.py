@@ -1,5 +1,4 @@
 import json
-from logging import FileHandler
 import urllib.request
 import urllib.parse
 from flask import Flask, Response, request
@@ -23,22 +22,22 @@ def load_data():
         # luodaan query parametrien perusteella lisättävä joukkue
         params = request.args
         state = params.get("tila")
-
-        if (state == "delete"):
-            delete_team(team_set, team_name)    
-
-        if (state == "insert"):
-
-            team_name = params.get("nimi")
+        team_name = params.get("nimi")
             #unquote purkaisi Meik\u00e4l\u00e4isen Meikäläiseksi: onko tarkoitus?
             #hazorin rakenteessa ei ole purettu!
             #if (team_name):
             #    team_name = urllib.parse.unquote(team_name)
+        team_set = params.get("sarja") 
+
+        if (state == "delete"):
+            delete_team(team_set, team_name)    
+
+        if (state == "insert"):        
             team_members = params.getlist("jasen")
             #if (team_members):
             #    for member in team_members:
             #        member = urllib.parse.unquote(member)
-            team_set = params.get("sarja")     
+                
             stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
 
             newTeam = {
@@ -71,11 +70,9 @@ def load_data():
 
 def get_stamp_indexes(stamps):
     stamping_methods = data["leimaustapa"]
-    print(stamping_methods)
     indexes = []
     for stamp in stamps:
         try:
-            print(stamping_methods.index(stamp))
             indexes.append(stamping_methods.index(stamp))
         except ValueError:
             continue            
