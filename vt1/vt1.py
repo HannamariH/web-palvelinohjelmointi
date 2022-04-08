@@ -1,6 +1,5 @@
 import json
 import urllib.request
-import urllib.parse
 from flask import Flask, Response, request
 from random import randint
 from datetime import timedelta
@@ -25,22 +24,15 @@ def load_data():
         params = request.args
         state = params.get("tila")
         team_name = params.get("nimi")
-        # unquote purkaisi Meik\u00e4l\u00e4isen Meikäläiseksi: onko tarkoitus?
-        # hazorin rakenteessa ei ole purettu!
-        # if (team_name):
-        #    team_name = urllib.parse.unquote(team_name)
         team_set = params.get("sarja")
+        team_id = params.get("id")
+        team_members = params.getlist("jasen")
+        stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
 
         if (state == "delete"):
             delete_team(team_set, team_name)
 
-        if (state == "insert"):
-            team_members = params.getlist("jasen")
-            # if (team_members):
-            #    for member in team_members:
-            #        member = urllib.parse.unquote(member)
-
-            stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
+        elif (state == "insert"):
 
             newTeam = {
                 "nimi": team_name,
@@ -56,6 +48,18 @@ def load_data():
                     newSet = add_team(set, newTeam)
                     # korvataan sarjalla aiempi sarja
                     set = newSet
+        
+        elif (state == "update"):
+
+            newTeam = {
+                "nimi": team_name,
+                "jasenet": team_members,
+                "leimaustapa": stamp_methods
+            }
+            print(newTeam)
+
+            update_team(newTeam, team_id)
+
 
         with open('data.json', 'w', encoding="utf-8") as outfile:
             json.dump(data, outfile)
@@ -69,6 +73,10 @@ def load_data():
         text = text + "\n" + integer_cps + "\n\n" + results
 
     return Response(text, mimetype="text/plain;charset=UTF-8")
+
+
+def update_team(team, id):
+    return
 
 
 def get_stamp_indexes(stamps):
@@ -300,9 +308,10 @@ def print_results():
                 team_data = team_data + ["0 km", "00:00:00"]
             teams_data.append(team_data)
 
-    # kaksiportainen sorttaus: ensin toissijainen (käytetyn ajan mukaan järjestykseen)
-    sorted_teams_once = sorted(teams_data, key=lambda x: x[3])
-    # toiseksi ensisijainen sorttaus (pisteiden mukaan laskevaan järjestykseen)
+    # kaksiportainen sorttaus: ensin toissijaiset 
+    # (käytetyn ajan ja joukkueen nimen mukaan järjestykseen)
+    sorted_teams_once = sorted(teams_data, key=lambda x: (x[3], x[0][0].upper()))
+    # sitten ensisijainen sorttaus (pisteiden mukaan laskevaan järjestykseen)
     sorted_teams_twice = sorted(sorted_teams_once, key=lambda x: x[0][1], reverse=True)
     # luodaan tulostus joukkueiden pisteistä
     for team in sorted_teams_twice:
