@@ -228,9 +228,6 @@ def print_results():
     teams_listed = ""
 
     for set in sets:
-        # 2 RIVIÄ TESTAUSTA VARTEN
-        # if set["nimi"] != "2h":
-        #    continue
         for team in set["joukkueet"]:
             team_data = []
             points = 0
