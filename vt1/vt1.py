@@ -3,6 +3,8 @@ import urllib.request
 import urllib.parse
 from flask import Flask, Response, request
 from random import randint
+from datetime import timedelta
+from math import sin, cos, sqrt, atan2, radians
 app = Flask(__name__)
 
 
@@ -23,21 +25,21 @@ def load_data():
         params = request.args
         state = params.get("tila")
         team_name = params.get("nimi")
-            #unquote purkaisi Meik\u00e4l\u00e4isen Meikäläiseksi: onko tarkoitus?
-            #hazorin rakenteessa ei ole purettu!
-            #if (team_name):
-            #    team_name = urllib.parse.unquote(team_name)
-        team_set = params.get("sarja") 
+        # unquote purkaisi Meik\u00e4l\u00e4isen Meikäläiseksi: onko tarkoitus?
+        # hazorin rakenteessa ei ole purettu!
+        # if (team_name):
+        #    team_name = urllib.parse.unquote(team_name)
+        team_set = params.get("sarja")
 
         if (state == "delete"):
-            delete_team(team_set, team_name)    
+            delete_team(team_set, team_name)
 
-        if (state == "insert"):        
+        if (state == "insert"):
             team_members = params.getlist("jasen")
-            #if (team_members):
+            # if (team_members):
             #    for member in team_members:
             #        member = urllib.parse.unquote(member)
-                
+
             stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
 
             newTeam = {
@@ -68,6 +70,7 @@ def load_data():
 
     return Response(text, mimetype="text/plain;charset=UTF-8")
 
+
 def get_stamp_indexes(stamps):
     stamping_methods = data["leimaustapa"]
     indexes = []
@@ -75,8 +78,9 @@ def get_stamp_indexes(stamps):
         try:
             indexes.append(stamping_methods.index(stamp))
         except ValueError:
-            continue            
+            continue
     return indexes
+
 
 def teams_alphabetical():
 
@@ -158,6 +162,64 @@ def delete_team(set_name, team_name):
                     del data["sarjat"][s]["joukkueet"][t]
                     break
 
+# TODO: saako olettaa, että päivä on kaikilla sama?
+def get_team_time(stamps):
+    start_time = stamps[0]["aika"].split()[1]
+    splitted = start_time.split(":")
+    start_delta = timedelta(hours=int(splitted[0]), minutes=int(
+        splitted[1]), seconds=int(splitted[2]))
+    finish_time = stamps[-1]["aika"].split()[1]
+    splitted = finish_time.split(":")
+    finish_delta = timedelta(hours=int(splitted[0]), minutes=int(
+        splitted[1]), seconds=int(splitted[2]))
+
+    time_used = finish_delta - start_delta
+    time_used_string = str(time_used)
+    # jos tunnit on ilmoitettu yhdellä numerolla, lisätään nolla eteen
+    if len(time_used_string.strip(":")[0]) < 2:
+        time_used_string = (f"0{time_used_string}")
+
+    return time_used_string
+
+
+def get_team_distance(stamps, cps):
+
+    # kerätään rastien lat & lon listaan
+    points = []
+    for stamp in stamps:
+        cp = str(stamp["rasti"])
+        for controlpoint in cps:
+            id = str(controlpoint["id"])
+            if id == cp:
+                try:
+                    lat = float(controlpoint["lat"])
+                    lon = float(controlpoint["lon"])
+                    points.append((lat, lon))
+                except (ValueError, TypeError):
+                    pass
+
+    # maapallon säde kilomerteinä (noin)
+    R = 6373.0
+
+    # käydään points läpi, lasketaan jokaisen rastivälin mitta ja lasketaan yhteen
+    full_distance = 0
+    starting_point = points[0]
+    lat1 = radians(starting_point[0])
+    lon1 = radians(starting_point[1])
+    for tuple in points:
+        lat2 = radians(tuple[0])
+        lon2 = radians(tuple[1])
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        distance = R * c
+        full_distance += distance
+        lat1 = lat2
+        lon1 = lon2
+
+    return (f"{round(full_distance)} km")
+
 
 def print_results():
     cps = data["rastit"]
@@ -166,6 +228,9 @@ def print_results():
     teams_listed = ""
 
     for set in sets:
+        # 2 RIVIÄ TESTAUSTA VARTEN
+        # if set["nimi"] != "2h":
+        #    continue
         for team in set["joukkueet"]:
             team_data = []
             points = 0
@@ -229,14 +294,22 @@ def print_results():
             members_sorted = sorted(team["jasenet"])
             team_data.append(team_points)
             team_data.append(members_sorted)
+            if newStamps:
+                team_distance = get_team_distance(newStamps, data["rastit"])
+                team_data.append(team_distance)
+                team_time = get_team_time(newStamps)
+                team_data.append(team_time)
+            else:
+                team_data = team_data + ["0 km", "00:00:00"]
             teams_data.append(team_data)
-    # kaksiportainen sorttaus: ensin toissijainen (nimen perusteella aakkosjärjestykseen)
-    sorted_teams_once = sorted(teams_data, key=lambda x: x[0][0])
+
+    # kaksiportainen sorttaus: ensin toissijainen (käytetyn ajan mukaan järjestykseen)
+    sorted_teams_once = sorted(teams_data, key=lambda x: x[3])
     # toiseksi ensisijainen sorttaus (pisteiden mukaan laskevaan järjestykseen)
     sorted_teams_twice = sorted(sorted_teams_once, key=lambda x: x[0][1], reverse=True)
     # luodaan tulostus joukkueiden pisteistä
     for team in sorted_teams_twice:
-        teams_listed += f"{team[0][0]} ({team[0][1]} p)\n"
+        teams_listed += f"{team[0][0]} ({team[0][1]} p, {team[2]}, {team[3]})\n"
         for member in team[1]:
             teams_listed += f"  {member}\n"
     return teams_listed
