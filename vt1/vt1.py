@@ -50,15 +50,12 @@ def load_data():
                     set = newSet
         
         elif (state == "update"):
-
             newTeam = {
                 "nimi": team_name,
                 "jasenet": team_members,
                 "leimaustapa": stamp_methods
             }
-            print(newTeam)
-
-            update_team(newTeam, team_id)
+            data = update_team(newTeam, team_id, team_set)
 
 
         with open('data.json', 'w', encoding="utf-8") as outfile:
@@ -74,9 +71,33 @@ def load_data():
 
     return Response(text, mimetype="text/plain;charset=UTF-8")
 
+# algoritmi:
+# etsitään id:n perusteella oikea joukkue
+# jos ollaan eri sarjassa kuin on annettu, tarkistetaan, onko annettua sarjaa olemassa
+# jos ei ole, päivitetään joukkue muilta osin
+# jos sarja on olemassa, siirretään päivitetty joukkue sinne
 
-def update_team(team, id):
-    return
+def update_team(u_team, id, team_set):
+    break_flag = False
+    for set in data["sarjat"]:   
+        for team in set["joukkueet"]:
+            # etsitään id:n perusteella oikea joukkue
+            if int(team["id"]) == int(id):
+                team["nimi"] = u_team["nimi"]
+                team["jasenet"] = u_team["jasenet"]
+                team["leimaustapa"] = u_team["leimaustapa"]
+                if set["nimi"].upper() != team_set.upper():
+                    #poista alkup. joukkue
+                    set["joukkueet"].remove(team)
+                    #siirry toiseen sarjaan, lisää muokattu joukkue sinne
+                    for index, set in enumerate(data["sarjat"]):
+                        if set["nimi"].upper() == team_set.upper():
+                            data["sarjat"][index]["joukkueet"].append(team)
+                break_flag = True
+                break
+        if break_flag:
+            break
+    return data
 
 
 def get_stamp_indexes(stamps):
