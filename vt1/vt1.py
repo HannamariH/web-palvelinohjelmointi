@@ -4,8 +4,8 @@ from flask import Flask, Response, request
 from random import randint
 from datetime import timedelta
 from math import sin, cos, sqrt, atan2, radians
-app = Flask(__name__)
 
+app = Flask(__name__)
 
 @app.route('/')
 def load_data():
@@ -30,10 +30,13 @@ def load_data():
         stamp_methods = get_stamp_indexes(params.getlist("leimaustapa"))
 
         if (state == "delete"):
-            delete_team(team_set, team_name)
+            #etsii team_setin perusteella oikean sarjan valmiiksi ja antaa funktiolle, joka poistaa joukkueen
+            for s in range(len(data["sarjat"])):
+                if data["sarjat"][s]["nimi"].strip().upper() == team_set.strip().upper():
+                    set = data["sarjat"][s]
+                    delete_team(set, team_name)
 
         elif (state == "insert"):
-
             newTeam = {
                 "nimi": team_name,
                 "jasenet": team_members,
@@ -41,13 +44,7 @@ def load_data():
                 "rastileimaukset": [],
                 "leimaustapa": stamp_methods
             }
-
-            # lisätään joukkue sarjaan
-            for set in data["sarjat"]:
-                if set["nimi"].upper() == team_set.upper():
-                    newSet = add_team(set, newTeam)
-                    # korvataan sarjalla aiempi sarja
-                    set = newSet
+            data = add_team(team_set, newTeam)
 
         elif (state == "update"):
             newTeam = {
@@ -56,7 +53,6 @@ def load_data():
                 "leimaustapa": stamp_methods
             }
             data = update_team(newTeam, team_id, team_set)
-
 
         with open('data.json', 'w', encoding="utf-8") as outfile:
             json.dump(data, outfile)
@@ -120,41 +116,44 @@ def teams_alphabetical():
             teams = teams + x + "\n"
     return teams
 
-
+#lisää joukkueen sarjaan
 def add_team(set, team):
 
     # tarkistaa, että datassa on ko. sarja
-    setNames = []
+    target_set = {}
     for s in data["sarjat"]:
-        setNames.append(s["nimi"])
-    if set["nimi"] not in setNames:
-        # palauta set sellaisenaan
-        return set
+        if s["nimi"].upper() == set.upper():
+            target_set = s
+    if not target_set:
+        return data
 
     # tarkistaa, että joukkueessa on oikeat avaimet
     keys = ["nimi", "jasenet", "id", "leimaustapa", "rastileimaukset"]
     for key in keys:
         if key not in team.keys():
-            # palauta set sellaisenaan
-            return set
+            # palauta data sellaisenaan
+            return data
 
-    # tarkistaa, että joukkueen nimi on uniikki
-    newTeamNameStripped = team["nimi"].strip().upper()
+    # tarkistaa, että joukkueen nimi on uniikki eikä tyhjä
+    new_team_name_stripped = team["nimi"].strip().upper()
+    if new_team_name_stripped == "":
+        return data
     for s in data["sarjat"]:
         for teams in s["joukkueet"]:
-            candidateNameStripped = teams["nimi"].strip().upper()
-            if candidateNameStripped == newTeamNameStripped:
-                # palauta set sellaisenaan
-                return set
+            candidate_name_stripped = teams["nimi"].strip().upper()
+            if candidate_name_stripped == new_team_name_stripped:
+                # palauta data sellaisenaan
+                print("sama nimi")
+                return data
 
     id = get_id()
     team["id"] = id
 
     # lisää joukkue
-    set["joukkueet"].append(team)
-    return set
+    target_set["joukkueet"].append(team)
+    return data
 
-
+#luo joukkueelle yksilöllisen id:n
 def get_id():
     id = randint(1000000000000000, 9999999999999999)
     for set in data["sarjat"]:
@@ -163,26 +162,26 @@ def get_id():
                 return get_id()
     return id
 
-
+#palauttaa kokonaisluvulla alkavat rastikoodit merkkijonona aakkosjärjestyksessä
 def starts_with_integer():
+    cps_list = []
     cps = ""
     for cp in data["rastit"]:
         if cp["koodi"][0].isdigit():
-            cps += cp["koodi"] + ";"
+            cps_list.append(cp["koodi"])
+    cps_list.sort()
+    for cp in cps_list:
+        cps = cps + cp + ";"
     cps = cps[:-1]
     return cps
 
-
-def delete_team(set_name, team_name):
-    # etsitään oikea sarja
-    for s in range(len(data["sarjat"])):
-        if data["sarjat"][s]["nimi"].strip().upper() == set_name.strip().upper():
-            setti = data["sarjat"][s]
-            # etsitään oikea joukkue
-            for t in range(len(setti["joukkueet"])):
-                if setti["joukkueet"][t]["nimi"].strip().upper() == team_name.strip().upper():
-                    del data["sarjat"][s]["joukkueet"][t]
-                    break
+#poistaa joukkueen 
+def delete_team(set, team_name):
+    # etsitään oikea joukkue
+    for t in range(len(set["joukkueet"])):
+        if set["joukkueet"][t]["nimi"].strip().upper() == team_name.strip().upper():
+            del set["joukkueet"][t]
+            break
 
 # TODO: saako olettaa, että päivä on kaikilla sama?
 def get_team_time(stamps):
