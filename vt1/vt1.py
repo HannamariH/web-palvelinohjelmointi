@@ -12,7 +12,7 @@ def load_data():
 
     reset = request.args.get("reset")
     if reset == "1":
-        url = "http://hazor.eu.pythonanywhere.com/2022/data2022.json"
+        url = "http://hazor.eu.pythonanywhere.com/2022/data2022s.json"
     else:
         url = "https://hahelle.eu.pythonanywhere.com/data.json"
 
@@ -38,7 +38,7 @@ def load_data():
                 "nimi": team_name,
                 "jasenet": team_members,
                 "id": "",
-                "leimaukset": [],
+                "rastileimaukset": [],
                 "leimaustapa": stamp_methods
             }
 
@@ -48,7 +48,7 @@ def load_data():
                     newSet = add_team(set, newTeam)
                     # korvataan sarjalla aiempi sarja
                     set = newSet
-        
+
         elif (state == "update"):
             newTeam = {
                 "nimi": team_name,
@@ -61,25 +61,18 @@ def load_data():
         with open('data.json', 'w', encoding="utf-8") as outfile:
             json.dump(data, outfile)
 
-        alpha_list = teams_alphabetical()
+        teams = teams_alphabetical()
         integer_cps = starts_with_integer()
         results = print_results()
         text = ""
-        for x in alpha_list:
-            text = text + x + "\n"
-        text = text + "\n" + integer_cps + "\n\n" + results
+        text = teams + "\n" + integer_cps + "\n\n" + results
 
     return Response(text, mimetype="text/plain;charset=UTF-8")
 
-# algoritmi:
-# etsitään id:n perusteella oikea joukkue
-# jos ollaan eri sarjassa kuin on annettu, tarkistetaan, onko annettua sarjaa olemassa
-# jos ei ole, päivitetään joukkue muilta osin
-# jos sarja on olemassa, siirretään päivitetty joukkue sinne
 
 def update_team(u_team, id, team_set):
     break_flag = False
-    for set in data["sarjat"]:   
+    for set in data["sarjat"]:
         for team in set["joukkueet"]:
             # etsitään id:n perusteella oikea joukkue
             if int(team["id"]) == int(id):
@@ -110,22 +103,22 @@ def get_stamp_indexes(stamps):
             continue
     return indexes
 
-
+#palauttaa joukkueet aakkosjärjestyksessä, merkkijonona,
+#rivinvaihdolla eroteltuna
 def teams_alphabetical():
-
     team_list = []
-
     for x in data["sarjat"]:
         for y in x["joukkueet"]:
             try:
                 team_list.append(y["nimi"])
             except KeyError:
                 pass
-
     # järjestää listan alkiot kirjainkoosta välittämättä
     team_list.sort(key=lambda x: x.lower())
-
-    return team_list
+    teams = ""
+    for x in team_list:
+            teams = teams + x + "\n"
+    return teams
 
 
 def add_team(set, team):
@@ -139,7 +132,7 @@ def add_team(set, team):
         return set
 
     # tarkistaa, että joukkueessa on oikeat avaimet
-    keys = ["nimi", "jasenet", "id", "leimaustapa", "leimaukset"]
+    keys = ["nimi", "jasenet", "id", "leimaustapa", "rastileimaukset"]
     for key in keys:
         if key not in team.keys():
             # palauta set sellaisenaan
@@ -261,7 +254,7 @@ def print_results():
             team_data = []
             points = 0
             # sorttaa leimaukset aikajärjestykseen
-            newStamps = sorted(team["leimaukset"], key=lambda cp: str(cp["aika"]))
+            newStamps = sorted(team["rastileimaukset"], key=lambda cp: str(cp["aika"]))
             # TODO: tämä olettaa, että lahto on oletuksena eka! entä jos lähtöä ei ole ollenkaan??
             lahto_index = 0
             # poistetaan LAHTOa edeltävät
