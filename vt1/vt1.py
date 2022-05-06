@@ -143,7 +143,6 @@ def add_team(set, team):
             candidate_name_stripped = teams["nimi"].strip().upper()
             if candidate_name_stripped == new_team_name_stripped:
                 # palauta data sellaisenaan
-                print("sama nimi")
                 return data
 
     id = get_id()
