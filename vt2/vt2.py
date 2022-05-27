@@ -1,4 +1,3 @@
-from email.policy import default
 from flask import Flask, Response, request, render_template
 from flask_wtf.csrf import CSRFProtect
 from polyglot import PolyglotForm
