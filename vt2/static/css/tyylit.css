@@ -1,0 +1,65 @@
+form {
+    border: solid 1px;
+    width: 20%;
+}
+
+label {
+    padding-left: 1em;
+}
+
+input {
+    margin-right: 1em;
+    float: right;
+}
+
+input[type=submit] {
+    float: left;
+    margin: 1em;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td {
+    border: solid 1px;
+    border-color: black;
+}
+
+tr:nth-of-type(even) td:nth-of-type(odd),
+tr:nth-of-type(odd) td:nth-of-type(even) {
+    color: black;
+    background-color: black;
+}
+
+tr:nth-of-type(even) td:nth-of-type(even),
+tr:nth-of-type(odd) td:nth-of-type(odd) {
+    color: white;
+    background-color: white;
+}
+
+img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto; 
+}
+
+.player {
+    writing-mode: vertical-lr;
+    transform: rotate(-180deg);
+    text-align: center;
+}
+
+.flex {
+    display: flex;
+    margin-top: 2em;
+}
+
+.error {
+    color: red;
+    padding-left: 1em;
+}
+
+.no-error {
+    height: 1.2em;
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fi" xmlns="http://www.w3.org/1999/xhtml" xml:lang="fi">
+
+<head>
+    <link rel="stylesheet" href="../static/css/tyylit.css" type="text/css" />
+    <meta charset="utf-8" />
+    <title>TIES4080 - Viikkotehtävä 2 - 2022 kesä+syksy</title>
+</head>
+
+<body>
+    <!-- Tästä eteenpäin on vain apuvälineenä käytettäviä skriptejä -->
+    <!-- HTMLinspectoria käytetään sivun live-muutosten validointiin. Kannattaa
+vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
+    <script src="https://appro.mit.jyu.fi/tools/htmlinspector/html-inspector.js"></script>
+    <!-- Sivun validoinnin W3C:n validaattorilla voit tehdä milloin tahansa näppäinyhdistelmällä CTRL+ALT+V -->
+    <script src="https://appro.mit.jyu.fi/tools/validator/validator.user.js"></script>
+    <script src="https://appro.mit.jyu.fi/tools/validator/xml-validator.js"></script>
+
+    <h1>Pelilauta</h1>
+    <p>Kerro luotavan peliaulueen koko ja pelaajien nimet. Ruudukko on yhtä monta ruutua leveä kuin korkea.</p>
+    <div class="flex">
+        <form action="/" method="post">
+            {{ form.csrf_token }}
+            <!--<input type="hidden" value="{{x}}" name="prev_x" />
+        <input type="hidden" value="{{pelaaja1}}" name="prev_p1" />
+        <input type="hidden" value="{{pelaaja2}}" name="prev_p2" />-->
+        <div class="form-inputs">
+            <p class="form-line">{{form.x.label}}{{ form.x }}</p>
+            <p class="form-line">{{form.pelaaja1.label}}{{ form.pelaaja1 }}</p>
+            <p class="form-line">{{form.pelaaja2.label}}{{ form.pelaaja2 }}</p>
+            <p><input type="submit" name="laheta" value="Luo pelilauta" /></p>
+        </div>
+        </form>
+        <div class="errors">
+            {% if form.x.errors %}
+            <p id="error1">{% for error in form.x.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            {% else %}
+                <p class="no-error"></p>
+            {% endif %}
+            {% if form.pelaaja1.errors %}
+            <p id="error2">{% for error in form.pelaaja1.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            {% else %}
+                <p class="no-error"></p>
+            {% endif %}
+            {% if form.pelaaja2.errors %}
+            <p id="error3">{% for error in form.pelaaja2.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            {% else %}
+                <p class="no-error"></p>
+            {% endif %}
+        </div>
+    </div>
+    <br />
+    <div class="flex">
+        <h2 class="player">{{pelaaja1}}</h2>
+        <table>
+            {% for i in range(1, x+1) %}
+            <tr>
+                {% for u in range(1, x+1) %}
+                {% if u == i %}
+                <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50" width="50"></img>
+                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+        <h2 class="player">{{pelaaja2}}</h2>
+    </div>
+</body>
+
+</html>
