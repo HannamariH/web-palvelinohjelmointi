@@ -26,18 +26,6 @@ td {
     border-color: black;
 }
 
-tr:nth-of-type(even) td:nth-of-type(odd),
-tr:nth-of-type(odd) td:nth-of-type(even) {
-    color: black;
-    background-color: black;
-}
-
-tr:nth-of-type(even) td:nth-of-type(even),
-tr:nth-of-type(odd) td:nth-of-type(odd) {
-    color: white;
-    background-color: white;
-}
-
 img {
     display: block;
     margin-left: auto;
@@ -62,4 +50,32 @@ img {
 
 .no-error {
     height: 1.2em;
+}
+
+.black {
+    color: magenta;
+}
+
+.white tr:nth-of-type(even) td:nth-of-type(odd),
+.white tr:nth-of-type(odd) td:nth-of-type(even) {
+    color: black;
+    background-color: black;
+}
+
+.white tr:nth-of-type(even) td:nth-of-type(even),
+.white tr:nth-of-type(odd) td:nth-of-type(odd) {
+    color: white;
+    background-color: white;
+}
+
+.black tr:nth-of-type(even) td:nth-of-type(odd),
+.black tr:nth-of-type(odd) td:nth-of-type(even) {
+    color: white;
+    background-color: white;
+}
+
+.black tr:nth-of-type(even) td:nth-of-type(even),
+.black tr:nth-of-type(odd) td:nth-of-type(odd) {
+    color: black;
+    background-color: black;
 }

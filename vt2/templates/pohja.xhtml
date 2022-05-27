@@ -24,44 +24,54 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
             <!--<input type="hidden" value="{{x}}" name="prev_x" />
         <input type="hidden" value="{{pelaaja1}}" name="prev_p1" />
         <input type="hidden" value="{{pelaaja2}}" name="prev_p2" />-->
-        <div class="form-inputs">
-            <p class="form-line">{{form.x.label}}{{ form.x }}</p>
-            <p class="form-line">{{form.pelaaja1.label}}{{ form.pelaaja1 }}</p>
-            <p class="form-line">{{form.pelaaja2.label}}{{ form.pelaaja2 }}</p>
-            <p><input type="submit" name="laheta" value="Luo pelilauta" /></p>
-        </div>
+            <div class="form-inputs">
+                <p class="form-line">{{form.x.label}}{{ form.x }}</p>
+                <p class="form-line">{{form.pelaaja1.label}}{{ form.pelaaja1 }}</p>
+                <p class="form-line">{{form.pelaaja2.label}}{{ form.pelaaja2 }}</p>
+                <p><input type="submit" name="laheta" value="Luo pelilauta" /></p>
+            </div>
         </form>
         <div class="errors">
             {% if form.x.errors %}
-            <p id="error1">{% for error in form.x.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            <p>{% for error in form.x.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
             {% else %}
-                <p class="no-error"></p>
+            <p class="no-error"></p>
             {% endif %}
             {% if form.pelaaja1.errors %}
-            <p id="error2">{% for error in form.pelaaja1.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            <p>{% for error in form.pelaaja1.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
             {% else %}
-                <p class="no-error"></p>
+            <p class="no-error"></p>
             {% endif %}
             {% if form.pelaaja2.errors %}
-            <p id="error3">{% for error in form.pelaaja2.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
+            <p>{% for error in form.pelaaja2.errors %} <span class="error">{{ error|e }}</span> {% endfor %}</p>
             {% else %}
-                <p class="no-error"></p>
+            <p class="no-error"></p>
             {% endif %}
         </div>
     </div>
     <br />
     <div class="flex">
         <h2 class="player">{{pelaaja1}}</h2>
-        <table>
+        <table class="{{first}}">
             {% for i in range(1, x+1) %}
-            <tr>
+                <tr>
                 {% for u in range(1, x+1) %}
-                {% if u == i %}
-                <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50" width="50"></img>
-                </td>
-                {% else %}
-                <td></td>
-                {% endif %}
+                    {% if balls_direction == "top-to-bottom" %}
+                        {% if u == i %}
+                            <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50" width="50"></img>
+                            </td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+                    {% endif %}
+                    {% if balls_direction == "bottom-to-top" %}
+                        {% if u + i == x+1 %}
+                            <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50" width="50"></img>
+                            </td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}
