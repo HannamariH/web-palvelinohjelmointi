@@ -1,4 +1,4 @@
-form {
+#create_game {
     border: solid 1px;
     width: 20%;
 }
@@ -57,25 +57,23 @@ img {
 }
 
 .white tr:nth-of-type(even) td:nth-of-type(odd),
-.white tr:nth-of-type(odd) td:nth-of-type(even) {
+.white tr:nth-of-type(odd) td:nth-of-type(even),
+.black tr:nth-of-type(even) td:nth-of-type(even),
+.black tr:nth-of-type(odd) td:nth-of-type(odd) {
     color: black;
     background-color: black;
 }
 
 .white tr:nth-of-type(even) td:nth-of-type(even),
-.white tr:nth-of-type(odd) td:nth-of-type(odd) {
-    color: white;
-    background-color: white;
-}
-
+.white tr:nth-of-type(odd) td:nth-of-type(odd),
 .black tr:nth-of-type(even) td:nth-of-type(odd),
 .black tr:nth-of-type(odd) td:nth-of-type(even) {
     color: white;
     background-color: white;
 }
 
-.black tr:nth-of-type(even) td:nth-of-type(even),
-.black tr:nth-of-type(odd) td:nth-of-type(odd) {
-    color: black;
-    background-color: black;
+button {
+    border: none;
+    background: none;
+    padding: 0.5em;
 }
