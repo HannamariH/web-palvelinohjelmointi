@@ -24,6 +24,8 @@ table {
 td {
     border: solid 1px;
     border-color: black;
+    width: 4rem;
+    height: 4rem;
 }
 
 img {

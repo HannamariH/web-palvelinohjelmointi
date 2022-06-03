@@ -51,8 +51,15 @@ def chess():
     except:
         x = min
 
+    try:
+        pieces = json.loads(request.values.get("pieces"))
+    except:
+        pieces = {1:1, 2:3, 3:2, 5:9}
+
     #validoidaan lomakekenttien syötteet
     if request.method == 'POST':
         form.validate()
 
-    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, balls_direction=balls_direction), mimetype="application/xhtml+xml;charset=UTF-8") 
+    
+
+    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, balls_direction=balls_direction, pieces=pieces, pieces_json= json.dumps(pieces)), mimetype="application/xhtml+xml;charset=UTF-8") 
