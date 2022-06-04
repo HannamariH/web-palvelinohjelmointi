@@ -52,14 +52,22 @@ def chess():
         x = min
 
     try:
-        pieces = json.loads(request.values.get("pieces"))
+        clicked = request.values.get("clicked")
+        key = str(clicked.split(":")[0])
+        print(key)
     except:
-        pieces = {1:1, 2:3, 3:2, 5:9}
+        clicked = None
+    print(clicked)      
+
+    try:
+        pieces = json.loads(request.values.get("pieces"))
+        print("pieces tuli lomakkeelta")
+    except:
+        #TODO: luo pieces balls_directionin mukaan
+        pieces = {1: [1], 2:[3,6], 3:[2], 5:[2,9]}
 
     #validoidaan lomakekenttien syötteet
     if request.method == 'POST':
-        form.validate()
+        form.validate() 
 
-    
-
-    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, balls_direction=balls_direction, pieces=pieces, pieces_json= json.dumps(pieces)), mimetype="application/xhtml+xml;charset=UTF-8") 
+    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json= json.dumps(pieces)), mimetype="application/xhtml+xml;charset=UTF-8") 
