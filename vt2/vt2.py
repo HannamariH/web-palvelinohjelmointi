@@ -59,12 +59,30 @@ def chess():
         clicked = None
     print(clicked)      
 
+    def createPieces(x, direction):
+        pieces = {}
+        if direction == "top-to-bottom":
+            print("oli top-to-bottom")
+            for i in range (1, x+1):
+                pieces[i] = [i]
+                print(pieces)
+            return pieces
+        elif direction == "bottom-to-top":
+            print("oli bottom-to-top")
+            for i in range (1, x+1):
+                pieces[i] = [x+1-i]
+                print(pieces)
+            return pieces
+        else:
+            return {}
+
     try:
         pieces = json.loads(request.values.get("pieces"))
         print("pieces tuli lomakkeelta")
     except:
-        #TODO: luo pieces balls_directionin mukaan
-        pieces = {1: [1], 2:[3,6], 3:[2], 5:[2,9]}
+        #pieces luodaan annetun diagonaalisuunnan mukaan
+        pieces = createPieces(x, balls_direction)
+        print(pieces)
 
     #validoidaan lomakekenttien syötteet
     if request.method == 'POST':
