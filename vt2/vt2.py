@@ -74,18 +74,16 @@ def chess():
         if not clicked:
             return pieces
         key = str(clicked.split(":")[0])
-        #TODO: tähän vielä se oikea clickedin poistaminen, kun ehditään sinne asti
+        value = str(clicked.split(":")[1])
+        pieces[key].remove(int(value))
         return pieces
 
     try:
         pieces = json.loads(request.values.get("pieces"))
-        print("pieces ladattu jsonista")
         pieces = remove_clicked(pieces, clicked)
     except:
         #pieces luodaan annetun diagonaalisuunnan mukaan
         pieces = create_pieces(x, balls_direction)
-        print("pieces luotiin annetun suunnan mukaan")
-    print("pieces", pieces)
 
     #validoidaan lomakekenttien syötteet
     if request.method == 'POST':
