@@ -20,7 +20,7 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
     <p>Kerro luotavan peliaulueen koko ja pelaajien nimet. Ruudukko on yhtä monta ruutua leveä kuin korkea.</p>
     <form action="/" method="post">
         {{ form.csrf_token }}
-        <input type="hidden" value="{{pieces}}" name="pieces" />
+        <input type="hidden" value="{{pieces_json}}" name="pieces" />
         <div class="flex">
             <div id="create_game">
                 <p class="form-line">{{form.x.label}}{{ form.x }}</p>
@@ -53,7 +53,7 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
                 {% for i in range(1, x+1) %}
                 <tr>
                     {% for u in range(1, x+1) %}
-                        {% for key, value in pieces.items() if (key == i)%}
+                        {% for key, value in pieces.items() if (key|int == i) %}                  
                             {% for v in value if (v == u) %}
                                 <td><button type="submit" name="clicked" value="{{i}}:{{u}}">
                                 <img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50"

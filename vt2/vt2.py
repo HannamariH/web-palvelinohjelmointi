@@ -53,36 +53,39 @@ def chess():
 
     try:
         clicked = request.values.get("clicked")
-        key = str(clicked.split(":")[0])
-        print(key)
     except:
         clicked = None
-    print(clicked)      
+    print("clicked", clicked)      
 
-    def createPieces(x, direction):
+    def create_pieces(x, direction):
         pieces = {}
         if direction == "top-to-bottom":
-            print("oli top-to-bottom")
             for i in range (1, x+1):
                 pieces[i] = [i]
-                print(pieces)
-            return pieces
         elif direction == "bottom-to-top":
-            print("oli bottom-to-top")
             for i in range (1, x+1):
                 pieces[i] = [x+1-i]
-                print(pieces)
-            return pieces
         else:
-            return {}
+            return pieces
+        return pieces
+
+    #poistetaan klikattu pelinappula laudalta
+    def remove_clicked(pieces, clicked):   
+        if not clicked:
+            return pieces
+        key = str(clicked.split(":")[0])
+        #TODO: tähän vielä se oikea clickedin poistaminen, kun ehditään sinne asti
+        return pieces
 
     try:
         pieces = json.loads(request.values.get("pieces"))
-        print("pieces tuli lomakkeelta")
+        print("pieces ladattu jsonista")
+        pieces = remove_clicked(pieces, clicked)
     except:
         #pieces luodaan annetun diagonaalisuunnan mukaan
-        pieces = createPieces(x, balls_direction)
-        print(pieces)
+        pieces = create_pieces(x, balls_direction)
+        print("pieces luotiin annetun suunnan mukaan")
+    print("pieces", pieces)
 
     #validoidaan lomakekenttien syötteet
     if request.method == 'POST':
