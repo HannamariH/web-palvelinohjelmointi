@@ -18,7 +18,7 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
 
     <h1>Pelilauta</h1>
     <p>Kerro luotavan peliaulueen koko ja pelaajien nimet. Ruudukko on yhtä monta ruutua leveä kuin korkea.</p>
-    <form action="/" method="post">
+    <form action="/" method="get">
         {{ form.csrf_token }}
         <input type="hidden" value="{{pieces_json}}" name="pieces" />
         <div class="flex">

@@ -31,7 +31,15 @@ def chess():
         pelaaja2 = StringField("Pelaaja 2", validators=[validators.InputRequired(
             message="Syötä pelaajan nimi"), validators.Length(min=1, message="Syötä pelaajan nimi")])
 
-    form = ChessForm()
+
+    if request.method == "POST":
+        form = ChessForm()
+        form.validate()
+    elif request.method == "GET" and request.args:
+        form = ChessForm(request.args)
+        form.validate()
+    else:
+        form = ChessForm()
 
     # poimitaan pelaajien nimet ja laudan koko lomakkeelta
     try:
@@ -81,12 +89,7 @@ def chess():
         pieces[key].remove(int(value))
         return pieces
 
-    #TODO: tää ei nyt ihan toimi, pitää miettiä, millä ehdoilla luodaan alusta ja milloin haetaan lomakkeelta
-    # alusta siis silloin, jos ei ole pelaajan antamia arvoja TAI jos ei ole vielä klikattu mitään
-    #JOS KÄYTETÄÄN GET-METODIA, NAPPULAN KLIKKAUS PIENENTÄÄ PELILAUDAN MINIMIKOKOON...
-    #POST-METODILLA TOIMII TÄLLÄ HETKELLÄ NÄTISTI
-    #TODO: mutta pitäisi ilmeisesti olla GET-metodi
-    if (not pelaaja1 and not pelaaja1 and not x) or not clicked:
+    if (not pelaaja1 and not pelaaja2 and not x) or not clicked:
         pieces = create_pieces(x, balls_direction)
     else:
         try:
@@ -95,9 +98,5 @@ def chess():
         except:
             # pieces luodaan annetun diagonaalisuunnan mukaan
             pieces = create_pieces(x, balls_direction)
-
-    # validoidaan lomakekenttien syötteet
-    if request.method == 'POST':
-        form.validate()
 
     return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces)), mimetype="application/xhtml+xml;charset=UTF-8")
