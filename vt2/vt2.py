@@ -31,7 +31,6 @@ def chess():
         pelaaja2 = StringField("Pelaaja 2", validators=[validators.InputRequired(
             message="Syötä pelaajan nimi"), validators.Length(min=1, message="Syötä pelaajan nimi")])
 
-
     if request.method == "POST":
         form = ChessForm()
         form.validate()
@@ -41,7 +40,7 @@ def chess():
     else:
         form = ChessForm()
 
-    # poimitaan pelaajien nimet ja laudan koko lomakkeelta
+    # poimitaan arvot lomakkeelta
     try:
         pelaaja1 = request.values.get("pelaaja1")
         if not pelaaja1:
@@ -68,6 +67,16 @@ def chess():
     except:
         clicked = None
 
+    try:
+        last_clicked = request.values.get("last_clicked")
+    except:
+        last_clicked = None
+
+    try:
+        undo = request.values.get("undo")
+    except:
+        undo = None
+
     def create_pieces(x, direction):
         pieces = {}
         if direction == "top-to-bottom":
@@ -89,7 +98,9 @@ def chess():
         pieces[key].remove(int(value))
         return pieces
 
-    if (not pelaaja1 and not pelaaja2 and not x) or not clicked:
+    # lomakekenttien arvojen perusteella luodaan näytettävät nappulat
+    if (not pelaaja1 and not pelaaja2 and not x) or not clicked and not undo:
+        # pieces luodaan annetun diagonaalisuunnan mukaan
         pieces = create_pieces(x, balls_direction)
     else:
         try:
@@ -99,4 +110,13 @@ def chess():
             # pieces luodaan annetun diagonaalisuunnan mukaan
             pieces = create_pieces(x, balls_direction)
 
-    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces)), mimetype="application/xhtml+xml;charset=UTF-8")
+    undid_row = None
+    undid_column = None
+    if undo:
+        try:
+            undid_row = int(last_clicked.split(":")[0])
+            undid_column = int(last_clicked.split(":")[1])
+        except:
+            pass
+
+    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces), clicked=clicked, undid_row=undid_row, undid_column=undid_column), mimetype="application/xhtml+xml;charset=UTF-8")
