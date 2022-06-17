@@ -53,29 +53,30 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
         {% endif %}
         <br />
         <div class="flex">
-            <h2 class="player">{{pelaaja1}}</h2>
+            <h2 class="player">{{pelaaja1}}</h2>           
+            {# TODO: taulukko käsittelemään dictiä, jossa on väri mukana #}
             <table class="{{first}}">
                 {% for i in range(1, x+1) %}
                 <tr>
                     {% for u in range(1, x+1) %}
-                        {% if i == undid_row and u == undid_column %}                
-                        <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/red.svg" alt="" height="50"
-                                width="50"></img>
-                            </td>
-                        {% else %}
-                            {% for key, value in pieces.items() if (key|int == i) %}
-                            {% for v in value if (v == u) %}
-                            <td><button type="submit" name="clicked" value="{{i}}:{{u}}">
-                            <img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50"
-                                width="50"></img></button>
-                            </td>
+                        {% for key, value in pieces.items() if (key|int == i) %}
+                            {% for v in value if v is defined %}
+                                {% if (v["col"] == u and v["color"] == "blue") %}
+                                    <td><button type="submit" name="clicked" value="{{i}}:{{u}}">
+                                    <img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/blue.svg" alt="" height="50"
+                                    width="50"></img></button>
+                                    </td>
+                                {% elif (v["col"] == u and v["color"] == "red") %}
+                                    <td><img src="https://appro.mit.jyu.fi/ties4080/vt/vt2/red.svg" alt="" height="50"
+                                    width="50"></img>
+                                    </td>
+                                {% else %}
+                                <td>Tyhjä solu</td>
+                                {% endif %}
                             {% else %}
-                            <td></td>
+                                <td>Tyhjä solu</td>
                             {% endfor %}
-                    {% else %}
-                    <td></td>
-                    {% endfor %}
-                    {% endif %}
+                        {% endfor %}
                     {% endfor %}
                 </tr>
                 {% endfor %}

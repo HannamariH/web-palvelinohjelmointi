@@ -81,10 +81,10 @@ def chess():
         pieces = {}
         if direction == "top-to-bottom":
             for i in range(1, x+1):
-                pieces[i] = [i]
+                pieces[i] = [{"col": i, "color": "blue"}]
         elif direction == "bottom-to-top":
             for i in range(1, x+1):
-                pieces[i] = [x+1-i]
+                pieces[i] = [{"col": x+1-i, "color": "blue"}]
         else:
             return pieces
         return pieces
@@ -95,7 +95,9 @@ def chess():
             return pieces
         key = str(clicked.split(":")[0])
         value = str(clicked.split(":")[1])
-        pieces[key].remove(int(value))
+        for k in pieces[key]:
+            if k["col"] == int(value):
+                pieces[key].remove(k)   
         return pieces
 
     # lomakekenttien arvojen perusteella luodaan näytettävät nappulat
@@ -112,6 +114,7 @@ def chess():
 
     undid_row = None
     undid_column = None
+    #TODO: tämä muuttamaan halutun nappulan väri piecesissä
     if undo:
         try:
             undid_row = int(last_clicked.split(":")[0])
@@ -119,4 +122,4 @@ def chess():
         except:
             pass
 
-    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces), clicked=clicked, undid_row=undid_row, undid_column=undid_column), mimetype="application/xhtml+xml;charset=UTF-8")
+    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces, indent=None, separators=(',',':')), clicked=clicked, undid_row=undid_row, undid_column=undid_column), mimetype="application/xhtml+xml;charset=UTF-8")
