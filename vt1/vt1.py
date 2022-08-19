@@ -174,7 +174,7 @@ def starts_with_integer():
     cps = cps[:-1]
     return cps
 
-#poistaa joukkueen 
+#poistaa joukkueen
 def delete_team(set, team_name):
     # etsitään oikea joukkue
     for t in range(len(set["joukkueet"])):
@@ -182,7 +182,6 @@ def delete_team(set, team_name):
             del set["joukkueet"][t]
             break
 
-# TODO: saako olettaa, että päivä on kaikilla sama?
 def get_team_time(stamps):
     start_time = stamps[0]["aika"].split()[1]
     splitted = start_time.split(":")
@@ -253,7 +252,6 @@ def print_results():
             points = 0
             # sorttaa leimaukset aikajärjestykseen
             newStamps = sorted(team["rastileimaukset"], key=lambda cp: str(cp["aika"]))
-            # TODO: tämä olettaa, että lahto on oletuksena eka! entä jos lähtöä ei ole ollenkaan??
             lahto_index = 0
             # poistetaan LAHTOa edeltävät
             for i in range(len(newStamps)):
@@ -263,7 +261,6 @@ def print_results():
                     if id == str(cp):
                         if str(controlpoint["koodi"]).upper() == "LAHTO":
                             lahto_index = i
-                    # TODO: jos lähtörastia ei löydy ollenkaan, siirry seuraavaan joukkueeseen
             # poistetaan lahto_indexiä aiemmat dictit newStampsista
             if lahto_index > 0:
                 newStamps = newStamps[lahto_index:]
@@ -320,7 +317,7 @@ def print_results():
                 team_data = team_data + ["0 km", "00:00:00"]
             teams_data.append(team_data)
 
-    # kaksiportainen sorttaus: ensin toissijaiset 
+    # kaksiportainen sorttaus: ensin toissijaiset
     # (käytetyn ajan ja joukkueen nimen mukaan järjestykseen)
     sorted_teams_once = sorted(teams_data, key=lambda x: (x[3], x[0][0].upper()))
     # sitten ensisijainen sorttaus (pisteiden mukaan laskevaan järjestykseen)
