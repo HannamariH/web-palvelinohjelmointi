@@ -2,6 +2,7 @@
 <html lang="fi" xmlns="http://www.w3.org/1999/xhtml" xml:lang="fi">
 
 <head>
+    <!-- <link rel="stylesheet" href="/~hahelle/cgi-bin/ties4080/vt2/static/css/tyylit.css" type="text/css" /> -->
     <link rel="stylesheet" href="../static/css/tyylit.css" type="text/css" />
     <meta charset="utf-8" />
     <title>TIES4080 - Viikkotehtävä 2 - 2022 kesä+syksy</title>
@@ -18,10 +19,12 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
 
     <h1>Pelilauta</h1>
     <p>Kerro luotavan peliaulueen koko ja pelaajien nimet. Ruudukko on yhtä monta ruutua leveä kuin korkea.</p>
+    <!-- <form action="http://users.jyu.fi/~hahelle/cgi-bin/ties4080/vt2/vt2.cgi" method="get"> -->
     <form action="/" method="get">
         {{ form.csrf_token }}
         <input type="hidden" value="{{pieces_json}}" name="pieces" />
         <input type="hidden" value="{{clicked}}" name="last_clicked" />
+        <input type="hidden" value="{{mode}}" name="prev_mode" />
         <div class="flex">
             <div id="create_game">
                 <p class="form-line">{{form.x.label}}{{ form.x }}</p>
@@ -48,13 +51,16 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
             </div>
         </div>
         <br />
+        <div class="flex">
+        <input type="submit" name="mode" value="siirtotila" />
+        <input type="submit" name="mode" value="poistotila" />
+        </div>
         {% if clicked %}
         <input type="submit" name="undo" value="undo" />
         {% endif %}
         <br />
-        <div class="flex">
+        <div class="flexboard">
             <h2 class="player">{{pelaaja1}}</h2>           
-            {# TODO: taulukko käsittelemään dictiä, jossa on väri mukana #}
             <table class="{{first}}">
                 {% for i in range(1, x+1) %}
                 <tr>
@@ -71,10 +77,10 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
                                     width="50"></img>
                                     </td>
                                 {% else %}
-                                <td>Tyhjä solu</td>
+                                <td></td>
                                 {% endif %}
                             {% else %}
-                                <td>Tyhjä solu</td>
+                                <td></td>
                             {% endfor %}
                         {% endfor %}
                     {% endfor %}

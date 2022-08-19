@@ -21,6 +21,7 @@ def chess():
     balls_direction = conf["balls"]
     min = conf["min"]
     max = conf["max"]
+    mode = "poistotila"
 
     # luodaan lomake
     class ChessForm(PolyglotForm):
@@ -63,6 +64,11 @@ def chess():
         x = min
 
     try:
+        laheta = request.values.get("laheta")
+    except:
+        laheta = None
+
+    try:
         clicked = request.values.get("clicked")
     except:
         clicked = None
@@ -77,7 +83,19 @@ def chess():
     except:
         undo = None
 
-    #luo nappuloiden alkuasetelman
+    try:
+        mode = request.values.get("mode")
+    except:
+        pass
+    if not mode:    
+        try:
+            mode = request.values.get("prev_mode")
+        except:
+            pass
+    if not mode:
+            mode = "poistotila"
+
+    # luo nappuloiden alkuasetelman
     def create_pieces(x, direction):
         pieces = {}
         if direction == "top-to-bottom":
@@ -98,7 +116,7 @@ def chess():
         value = str(clicked.split(":")[1])
         for k in pieces[key]:
             if k["col"] == int(value):
-                pieces[key].remove(k)   
+                pieces[key].remove(k)
         return pieces
 
     # lisää poistetun nappulan takaisin punaisena
@@ -109,7 +127,7 @@ def chess():
         return pieces
 
     # lomakekenttien arvojen perusteella luodaan näytettävät nappulat
-    if (not pelaaja1 and not pelaaja2 and not x) or not clicked and not undo:
+    if laheta:
         # pieces luodaan annetun diagonaalisuunnan mukaan
         pieces = create_pieces(x, balls_direction)
     else:
@@ -128,4 +146,4 @@ def chess():
         except:
             pass
 
-    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, pieces=pieces, pieces_json=json.dumps(pieces, indent=None, separators=(',',':')), clicked=clicked), mimetype="application/xhtml+xml;charset=UTF-8")
+    return Response(render_template("pohja.xhtml", form=form, pelaaja1=pelaaja1, pelaaja2=pelaaja2, x=x, first=first, mode=mode, pieces=pieces, pieces_json=json.dumps(pieces, indent=None, separators=(',', ':')), clicked=clicked), mimetype="application/xhtml+xml;charset=UTF-8")
