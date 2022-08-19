@@ -24,7 +24,7 @@ vielä varmuuden vuoksi ajaa välillä myös W3C:n validaattori -->
         {{ form.csrf_token }}
         <input type="hidden" value="{{pieces_json}}" name="pieces" />
         <input type="hidden" value="{{clicked}}" name="last_clicked" />
-        <input type="hidden" value="{{mode}}" name="prev_mode" />
+        <input type="hidden" value="{{mode}}" name="current_mode" />
         <div class="flex">
             <div id="create_game">
                 <p class="form-line">{{form.x.label}}{{ form.x }}</p>

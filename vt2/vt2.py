@@ -89,7 +89,7 @@ def chess():
         pass
     if not mode:    
         try:
-            mode = request.values.get("prev_mode")
+            mode = request.values.get("current_mode")
         except:
             pass
     if not mode:
