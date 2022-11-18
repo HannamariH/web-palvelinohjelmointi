@@ -33,6 +33,7 @@ def signin():
                                                             **dbconfig)
         con = pool.get_connection()
         cur = con.cursor(buffered=True, dictionary=True)
+        # haetaan kilpailut valikkoon
         sql = """SELECT kisanimi, alkuaika FROM kilpailut"""
         cur = con.cursor()
         cur.execute(sql)
@@ -43,21 +44,45 @@ def signin():
             year = i[1].timetuple().tm_year
             race = f"{race} {str(year)}"
             races.append(race)
-        print("races", races)
+        login_error = False
         username = request.form.get("username", "")
-        password = request.form.get("password", "")
+        username = username.strip().lower()
         race = request.form.get("race", "")
+        try:
+            race_name = race.split()[0]
+            race_year = race.split()[1]
+        except:
+            race_name = ""
+            race_year = ""
+        # haetaan annettujen joukkueen ja kilpailun tiedot
+        sql = """SELECT j.joukkuenimi, j.salasana, j.id, k.kisanimi, k.alkuaika FROM joukkueet j, sarjat s, kilpailut k
+                WHERE lower(j.joukkuenimi) = %s
+                AND k.kisanimi = %s
+                AND k.alkuaika like %s
+                AND j.sarja = s.id
+                AND s.kilpailu = k.id"""
+        cur = con.cursor()
+        cur.execute(sql, (username, race_name, race_year+"%"))        
+        team = cur.fetchall()
+        if team == []:
+            session.pop("loggedin", None)
+            klikattu = request.form.get("kirjaudu", "")           
+            if klikattu != "":
+                login_error = True        
+        password = request.form.get("password", "")   
         m = hashlib.sha512()
-        team_id = ""  # TODO: hae tietokannasta usernamen perusteella
-        m.update(str(team_id).encode("UTF-8"))
-        m.update(password.encode("UTF-8"))
-        if m.hexdigest() == "tietokannasta haettu hash":
-            # jos kaikki ok niin asetetaan sessioon tieto kirjautumisesta ja ohjataan laskurisivulle
-            session['loggedin'] = "ok"
-            # TODO: ohjaus halutulle sivulle
-            return redirect(url_for('laskuri'))
-        # jos ei ollut oikea salasana niin pysytään kirjautumissivulla.
-        return render_template('login.xhtml', races=races)
+        try:
+            m.update(str(team[0][2]).encode("UTF-8"))
+            m.update(password.encode("UTF-8"))
+            if m.hexdigest() == team[0][1]:
+                session['loggedin'] = "ok"
+                return redirect(url_for('youre_in'))
+            # jos ei ollut oikea salasana, pysytään kirjautumissivulla
+            session.pop("loggedin", None)
+            return render_template('login.xhtml', races=races, login_error=login_error)
+        except:
+            session.pop("loggedin", None)
+            return render_template('login.xhtml', races=races, login_error=login_error)
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("Tunnus tai salasana on väärin")
@@ -67,3 +92,8 @@ def signin():
             print(err)
     finally:
         con.close()
+
+@app.route('/welcome', methods=['GET', 'POST'])
+@auth
+def youre_in():
+    return "Pääsit sisään!"

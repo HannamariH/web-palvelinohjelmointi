@@ -6,11 +6,14 @@
 
     <body>
         <h1>Kirjaudu</h1>
+        {% if login_error %}
+        <p>Kirjautuminen epäonnistui</p>
+        {% endif %}
         <form action="{{request.base_url}}" method="POST">
             <p>
                 <label
                     >Valitse kilpailu
-                    <select>
+                    <select name="race">
                         {% for i in races %}
                         <option value="{{i}}">{{i}}</option>
                         {% endfor %}
