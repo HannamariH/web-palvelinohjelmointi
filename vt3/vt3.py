@@ -33,15 +33,17 @@ def signin():
                                                             **dbconfig)
         con = pool.get_connection()
         cur = con.cursor(buffered=True, dictionary=True)
-
-        # TODO: hae tietokannasta kisat vuosineen
-
         sql = """SELECT kisanimi, alkuaika FROM kilpailut"""
         cur = con.cursor()
         cur.execute(sql)
-        races = cur.fetchall()
-        print(races)
-        # TODO: käsittele kisat ja vuodet nättiin muotoon templatelle
+        races_init = cur.fetchall()
+        races = []
+        for i in races_init:
+            race = i[0]
+            year = i[1].timetuple().tm_year
+            race = f"{race} {str(year)}"
+            races.append(race)
+        print("races", races)
         username = request.form.get("username", "")
         password = request.form.get("password", "")
         race = request.form.get("race", "")

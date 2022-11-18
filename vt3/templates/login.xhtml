@@ -10,11 +10,10 @@
             <p>
                 <label
                     >Valitse kilpailu
-                    <!-- TODO: looppi, jossa races-muuttujasta selectin arvot-->
                     <select>
-                        <option value="a">a</option>
-                        <option value="s">s</option>
-                        <option value="d">d</option>
+                        {% for i in races %}
+                        <option value="{{i}}">{{i}}</option>
+                        {% endfor %}
                     </select>
                 </label>
             </p>
