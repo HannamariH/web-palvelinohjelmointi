@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rogaining</title>
+    </head>
+
+    <body>
+        <h1>Kirjaudu</h1>
+        <form action="{{request.base_url}}" method="POST">
+            <p>
+                <label
+                    >Valitse kilpailu
+                    <!-- TODO: looppi, jossa races-muuttujasta selectin arvot-->
+                    <select>
+                        <option value="a">a</option>
+                        <option value="s">s</option>
+                        <option value="d">d</option>
+                    </select>
+                </label>
+            </p>
+            <p>
+                <label
+                    >Joukkueen nimi <input type="text" name="username"
+                /></label>
+            </p>
+            <p>
+                <label
+                    >Joukkueen salasana <input type="text" name="password"
+                /></label>
+            </p>
+            <p>
+                <input type="submit" name="kirjaudu" value="Kirjaudu" />
+            </p>
+        </form>
+    </body>
+</html>

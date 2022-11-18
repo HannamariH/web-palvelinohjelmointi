@@ -1,8 +1,13 @@
 paateohjaukset
 vt1/venv
 vt2/venv
+vt3/venv
 vt2/vt2.cgi
 data.json
+dbconfig.json
+mysql.sql
 anywhere.py
 __pycache__
 oma_datajson_osoite.txt
+*.zip
+2022_kurssin_sivut
