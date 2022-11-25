@@ -14,10 +14,13 @@
                 <li>     
                     {{ i.1 }}
                 </li>                    
-                    <ul></ul>
-                </li>
     {% else %}        
-            <li>{{ i.1 }} else</li>
+            <li>
+                {{ i.1 }}
+            </li>
+            {% if loop.nextitem and loop.nextitem.0 != i.0 %}
+                </ul>
+            {% endif %}
     {% endif %}
     </li>
 {% endfor %}
