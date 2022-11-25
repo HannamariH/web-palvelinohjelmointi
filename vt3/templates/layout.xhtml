@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}{% endblock %} - Rogaining</title>
+    </head>
+    <body>
+        <div id="header">{% block header %}
+            <p>Kilpailun nimi, alkamisaika</p>
+            <p><a href="">Joukkueen nimi</a></p>
+            <p><a href="">Joukkuelistaussivu</a></p>
+            {% endblock %}</div>
+        <div id="content">{% block content %}{% endblock %}</div>
+    </body>
+</html>
