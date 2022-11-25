@@ -23,7 +23,6 @@ def auth(f):
         return f(*args, **kwargs)
     return decorated
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def signin():
 
@@ -31,11 +30,11 @@ def signin():
         pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="tietokantayhteydet",
                                                             pool_size=2,  # PythonAnywheren ilmaisen tunnuksen maksimi on kolme
                                                             **dbconfig)
-        con = pool.get_connection()
-        cur = con.cursor(buffered=True, dictionary=True)
+        con = pool.get_connection()      
         # haetaan kilpailut valikkoon
         sql = """SELECT kisanimi, alkuaika FROM kilpailut"""
         cur = con.cursor()
+        #cur = con.cursor(buffered=True, dictionary=True)
         cur.execute(sql)
         races_init = cur.fetchall()
         races = []
@@ -76,7 +75,7 @@ def signin():
             m.update(password.encode("UTF-8"))
             if m.hexdigest() == team[0][1]:
                 session['loggedin'] = "ok"
-                return redirect(url_for('youre_in'))
+                return redirect(url_for('team_list', race_name=race_name, race_year=race_year, con=con))
             # jos ei ollut oikea salasana, pysytään kirjautumissivulla
             session.pop("loggedin", None)
             return render_template('login.xhtml', races=races, login_error=login_error)
@@ -93,7 +92,23 @@ def signin():
     finally:
         con.close()
 
-@app.route('/welcome', methods=['GET', 'POST'])
+#TODO: pitäiskö olla molemmat metodit sallittu? 
+# redirect(url_for) tekee aina(?) GET-pyynnön
+@app.route('/teams', methods=['GET'])
 @auth
-def youre_in():
-    return "Pääsit sisään!"
+def team_list():
+    race_name=request.args.get("race_name")
+    race_year=request.args.get("race_year")
+
+    sql = """SELECT s.sarjanimi, j.joukkuenimi, j.jasenet FROM kilpailut k, joukkueet j, sarjat s 
+        WHERE k.alkuaika LIKE %s AND k.kisanimi LIKE %s
+        AND j.sarja = s.id
+        AND s.kilpailu = k.id
+        OEDER BY s.sarjanimi, j.joukkuenimi;"""
+    #cur = con.cursor()
+    #cur.execute(sql, (race_year+"%", race_name))        
+    #teams = cur.fetchall()
+    #print(teams)
+
+    #return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams)
+    return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year)
