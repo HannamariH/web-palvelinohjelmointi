@@ -1,8 +1,26 @@
 {% extends "layout.xhtml" %} 
-{% block title %}Login{% endblock %}  
+{% block title %}Joukkuelistaus{% endblock %}  
 {% block content %}
 <h1>Joukkuelistaus</h1>
 <p>{{ race_name }}</p>
 <p>{{ race_year }}</p>
 <p>{{ teams }}</p>
+<ul>
+{% for i in teams %}
+    {%if not loop.previtem or loop.previtem.0 != i.0 %}
+        <li>
+            {{i.0}}     
+            <ul>
+                <li>     
+                    {{ i.1 }}
+                </li>                    
+                    <ul></ul>
+                </li>
+    {% else %}        
+            <li>{{ i.1 }} else</li>
+    {% endif %}
+    </li>
+{% endfor %}
+</ul>
 {% endblock %}
+

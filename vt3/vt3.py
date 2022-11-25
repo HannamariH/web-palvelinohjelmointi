@@ -14,6 +14,18 @@ app.secret_key = '7\xb9\x8b\xce\xff\x0feD/NA\xff\x818R\xc7\t\x00\xbcG\xf9S\xa0t'
 file = io.open("dbconfig.json", encoding="UTF-8")
 dbconfig = json.load(file)
 
+try:
+    pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="tietokantayhteydet",
+                                                            pool_size=2,  # PythonAnywheren ilmaisen tunnuksen maksimi on kolme
+                                                            **dbconfig)
+    con = pool.get_connection()    
+except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Tunnus tai salasana on väärin")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Tietokantaa ei löydy")
+        else:
+            print(err)
 
 def auth(f):
     @wraps(f)
@@ -26,11 +38,7 @@ def auth(f):
 @app.route('/login', methods=['GET', 'POST'])
 def signin():
 
-    try:
-        pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="tietokantayhteydet",
-                                                            pool_size=2,  # PythonAnywheren ilmaisen tunnuksen maksimi on kolme
-                                                            **dbconfig)
-        con = pool.get_connection()      
+    try:          
         # haetaan kilpailut valikkoon
         sql = """SELECT kisanimi, alkuaika FROM kilpailut"""
         cur = con.cursor()
@@ -75,22 +83,18 @@ def signin():
             m.update(password.encode("UTF-8"))
             if m.hexdigest() == team[0][1]:
                 session['loggedin'] = "ok"
-                return redirect(url_for('team_list', race_name=race_name, race_year=race_year, con=con))
+                return redirect(url_for('team_list', race_name=race_name, race_year=race_year))
             # jos ei ollut oikea salasana, pysytään kirjautumissivulla
             session.pop("loggedin", None)
             return render_template('login.xhtml', races=races, login_error=login_error)
         except:
             session.pop("loggedin", None)
             return render_template('login.xhtml', races=races, login_error=login_error)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Tunnus tai salasana on väärin")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Tietokantaa ei löydy")
-        else:
-            print(err)
-    finally:
-        con.close()
+    except:
+        #TODO pass????
+        pass
+    #finally:
+    #    con.close()
 
 #TODO: pitäiskö olla molemmat metodit sallittu? 
 # redirect(url_for) tekee aina(?) GET-pyynnön
@@ -104,11 +108,10 @@ def team_list():
         WHERE k.alkuaika LIKE %s AND k.kisanimi LIKE %s
         AND j.sarja = s.id
         AND s.kilpailu = k.id
-        OEDER BY s.sarjanimi, j.joukkuenimi;"""
-    #cur = con.cursor()
-    #cur.execute(sql, (race_year+"%", race_name))        
-    #teams = cur.fetchall()
-    #print(teams)
+        ORDER BY s.sarjanimi, j.joukkuenimi;"""
+    cur = con.cursor()
+    cur.execute(sql, (race_year+"%", race_name))        
+    teams = cur.fetchall()
+    print(teams)
 
-    #return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams)
-    return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year)
+    return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams)
