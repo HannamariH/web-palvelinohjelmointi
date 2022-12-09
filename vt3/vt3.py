@@ -27,6 +27,9 @@ except mysql.connector.Error as err:
         else:
             print(err)
 
+#TODO: tarkista, että tietokantayhteys tulee suljettua aina lopuksi!
+#miten tehdään, kun eri reitit käyttää samaa yhteyttä? vain logout-reittiin con.close()?
+
 def auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -112,6 +115,13 @@ def team_list():
     cur = con.cursor()
     cur.execute(sql, (race_year+"%", race_name))        
     teams = cur.fetchall()
-    print(teams)
+    teams_list = []
+    for team in teams:
+        members = team[2]
+        members = members.replace("[","").replace("]","").replace('"',"")
+        members_array = [x.strip() for x in members.split(",")]
+        team_list = list(team)
+        team_list[2] = members_array
+        teams_list.append(team_list)
 
-    return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams)
+    return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams_list)
