@@ -2,6 +2,7 @@ paateohjaukset
 vt1/venv
 vt2/venv
 vt3/venv
+vt3/vt3.sql
 vt2/vt2.cgi
 data.json
 dbconfig.json
