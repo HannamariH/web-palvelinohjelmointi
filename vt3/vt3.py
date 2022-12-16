@@ -6,11 +6,12 @@ from functools import wraps
 import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
-#from wtforms import IntegerField, StringField, validators, IntegerField
-#from flask_wtf.csrf import CSRFProtect
+from polyglot import PolyglotForm
+from wtforms import StringField, RadioField, validators
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
-
+#csrf = CSRFProtect(app)
 app.secret_key = '7\xb9\x8b\xce\xff\x0feD/NA\xff\x818R\xc7\t\x00\xbcG\xf9S\xa0t'
 
 file = io.open("dbconfig.json", encoding="UTF-8")
@@ -135,7 +136,7 @@ def team_list():
 
     return render_template('teamslist.xhtml', race_name=race_name, race_year=race_year, teams=teams_list, start_time=session["start_time"], team_name=session["team_name"])
 
-@app.route('/modify', methods=['GET'])
+@app.route('/modify', methods=['GET', 'POST'])
 @auth
 def modify_team():
     #haetaan ko. kisan sarjat radiobuttoneihin
@@ -158,4 +159,79 @@ def modify_team():
     members = team[0][0]
     members = members.replace("[","").replace("]","").replace('"',"")
     members_array = [x.strip() for x in members.split(",")]
-    return render_template("modify.xhtml", sarjat=sarjat, sarja=sarja, members=members_array, race_name=session["race_name"], race_year=session["race_year"], start_time=session["start_time"], team_name=session["team_name"])
+
+    #TODO: lomake
+    class modifyTeamForm(PolyglotForm):
+        #radiobuttonien oikeat arvot syötetään myöhemmin
+        set = RadioField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
+        #TODO: samassa sarjassa ei saa olla kahta samannimistä joukkuetta, missä vaiheessa tarkistus?
+        team = StringField("Joukkueen nimi", validators=[validators.InputRequired(
+            message="Syötä joukkueen nimi"), validators.Length(min=1, message="Syötä joukkueen nimi")])   
+        member1 = StringField("Jäsen 1")
+        member2 = StringField("Jäsen 2")
+        member3 = StringField("Jäsen 3")
+        member4 = StringField("Jäsen 4")
+        member5 = StringField("Jäsen 5")
+
+    if request.method == "POST":
+        form = modifyTeamForm()
+        form.validate()
+    elif request.method == "GET" and request.args:
+        form = modifyTeamForm(request.args)
+        form.validate()
+    else:
+        form = modifyTeamForm()
+
+    form.set.choices = [(i[0], i[0]) for i in sarjat]
+
+    try:
+        form.team.data = request.values.get("team")
+        if not form.team.data:
+            form.team.data = session["team_name"]
+    except:
+        #TODO: jotain
+        pass
+
+    try:
+        form.set.data = request.values.get("set")
+        if not form.set.data:
+            form.set.data = sarja
+    except:
+        pass
+
+    try:
+        form.member1.data = request.values.get("member1")
+        if not form.member1.data:
+            form.member1.data = members_array[0]
+    except:
+        form.member1.data = ""
+
+    try:
+        form.member2.data = request.values.get("member2")
+        if not form.member2.data:
+            form.member2.data = members_array[1]
+    except:
+        form.member2.data = ""
+
+    try:
+        form.member3.data = request.values.get("member3")
+        if not form.member3.data:
+            form.member3.data = members_array[2]
+    except:
+        form.member3.data = ""
+
+    try:
+        form.member4.data = request.values.get("member4")
+        if not form.member4.data:
+            form.member4.data = members_array[3]
+    except:
+        form.member4.data = ""
+
+    try:
+        form.member5.data = request.values.get("member5")
+        if not form.member5.data:
+            form.member5.data = members_array[4]
+    except:
+        form.member5.data = ""
+
+    return render_template("modify.xhtml", form=form, team=team, sarjat=sarjat, sarja=sarja, members=members_array, race_name=session["race_name"], race_year=session["race_year"], start_time=session["start_time"], team_name=session["team_name"])

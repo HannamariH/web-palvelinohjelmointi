@@ -1,0 +1,31 @@
+p, .radiolabel {
+    padding-left: 1em;
+}
+
+input {
+    margin-right: 1em;
+    /*float: right;*/
+}
+
+input[type=submit] {
+    float: left;
+}
+
+.flex {
+    display: flex;
+}
+
+.error {
+    color: red;
+    padding-left: 1em;
+}
+
+.no-error {
+    height: 1.5em;
+}
+
+button {
+    border: none;
+    background: none;
+    padding: 0.5em;
+}
