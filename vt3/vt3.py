@@ -7,7 +7,7 @@ import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
 from polyglot import PolyglotForm
-from wtforms import StringField, RadioField, validators
+from wtforms import StringField, RadioField, validators, ValidationError
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
@@ -160,14 +160,24 @@ def modify_team():
     members = members.replace("[","").replace("]","").replace('"',"")
     members_array = [x.strip() for x in members.split(",")]
 
-    #TODO: lomake
+    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä
+    def validate_members(form, field):
+        members = []
+        for i in form.data.items():
+            if "member" in i[0]:
+                members.append(i[1])
+            while '' in members:
+                members.remove('')
+        if len(members) < 2:
+            raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
+
     class modifyTeamForm(PolyglotForm):
         #radiobuttonien oikeat arvot syötetään myöhemmin
         set = RadioField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
-        #TODO: samassa sarjassa ei saa olla kahta samannimistä joukkuetta, missä vaiheessa tarkistus?
+        #TODO: samassa KILPAILUSSA ei saa olla kahta samannimistä joukkuetta, missä vaiheessa tarkistus?
         team = StringField("Joukkueen nimi", validators=[validators.InputRequired(
-            message="Syötä joukkueen nimi"), validators.Length(min=1, message="Syötä joukkueen nimi")])   
-        member1 = StringField("Jäsen 1")
+            message="Joukkueen nimi ei saa olla tyhjä"), validators.Length(min=1, message="Joukkueen nimi ei saa olla tyhjä")])   
+        member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
         member3 = StringField("Jäsen 3")
         member4 = StringField("Jäsen 4")
