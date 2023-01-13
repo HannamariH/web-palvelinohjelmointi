@@ -140,7 +140,7 @@ def team_list():
 @auth
 def modify_team():
     #haetaan ko. kisan sarjat radiobuttoneihin
-    sql = """SELECT s.sarjanimi FROM sarjat s 
+    sql = """SELECT s.sarjanimi FROM sarjat s
             WHERE s.kilpailu IN (
                 SELECT k.id FROM kilpailut k 
                 WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
@@ -150,7 +150,7 @@ def modify_team():
     sarjat = cur.fetchall()
 
     #haetaan joukkueen tiedot valmiiksi lomakkeelle
-    sql = """SELECT j.jasenet, s.sarjanimi FROM joukkueet j, sarjat s 
+    sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
             WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s;"""
     cur = con.cursor()
     cur.execute(sql, (session["team_name"],))        
@@ -159,8 +159,9 @@ def modify_team():
     members = team[0][0]
     members = members.replace("[","").replace("]","").replace('"',"")
     members_array = [x.strip() for x in members.split(",")]
+    race_id = team[0][2]
 
-    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä
+    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
     def validate_members(form, field):
         members = []
         for i in form.data.items():
@@ -170,13 +171,26 @@ def modify_team():
                 members.remove('')
         if len(members) < 2:
             raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
+        if len(members) != len(set(members)):
+            raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
 
+    #tarkistaa, ettei samannimistä joukkuetta vielä ole ko. kilpailussa
+    def validate_team(form, field):
+        sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s)"""
+        cur = con.cursor()
+        cur.execute(sql, (race_id,))        
+        teams = cur.fetchall()
+        for team in teams:
+            if team[0].strip().lower() == field.data.strip().lower():
+                raise ValidationError("Kilpailussa on jo samanniminen joukkue")
+        return
+            
     class modifyTeamForm(PolyglotForm):
         #radiobuttonien oikeat arvot syötetään myöhemmin
         set = RadioField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
         #TODO: samassa KILPAILUSSA ei saa olla kahta samannimistä joukkuetta, missä vaiheessa tarkistus?
         team = StringField("Joukkueen nimi", validators=[validators.InputRequired(
-            message="Joukkueen nimi ei saa olla tyhjä"), validators.Length(min=1, message="Joukkueen nimi ei saa olla tyhjä")])   
+            message="Joukkueen nimi ei saa olla tyhjä"), validators.Length(min=1, message="Joukkueen nimi ei saa olla tyhjä"), validate_team])   
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
         member3 = StringField("Jäsen 3")
