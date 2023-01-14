@@ -166,7 +166,7 @@ def modify_team():
         members = []
         for i in form.data.items():
             if "member" in i[0]:
-                members.append(i[1])
+                members.append(i[1].strip())
             while '' in members:
                 members.remove('')
         if len(members) < 2:
@@ -174,23 +174,26 @@ def modify_team():
         if len(members) != len(set(members)):
             raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
 
-    #tarkistaa, ettei samannimistä joukkuetta vielä ole ko. kilpailussa
+    #tarkistaa, ettei joukkueen nimi ole tyhjä ja ettei samannimistä joukkuetta vielä ole ko. kilpailussa
     def validate_team(form, field):
-        sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s)"""
-        cur = con.cursor()
-        cur.execute(sql, (race_id,))        
-        teams = cur.fetchall()
-        for team in teams:
-            if team[0].strip().lower() == field.data.strip().lower():
-                raise ValidationError("Kilpailussa on jo samanniminen joukkue")
+        field.data = field.data.strip()
+        if not field.data:
+            raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
+        #jos joukkueen nimeä on muokattu lomakkeella
+        if field.data.lower() != session["team_name"].lower():
+            sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s)"""       
+            cur = con.cursor()
+            cur.execute(sql, (race_id,))        
+            teams = cur.fetchall()
+            for team in teams:
+                if team[0].strip().lower() == field.data.strip().lower():
+                    raise ValidationError("Kilpailussa on jo samanniminen joukkue")
         return
             
     class modifyTeamForm(PolyglotForm):
         #radiobuttonien oikeat arvot syötetään myöhemmin
         set = RadioField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
-        #TODO: samassa KILPAILUSSA ei saa olla kahta samannimistä joukkuetta, missä vaiheessa tarkistus?
-        team = StringField("Joukkueen nimi", validators=[validators.InputRequired(
-            message="Joukkueen nimi ei saa olla tyhjä"), validators.Length(min=1, message="Joukkueen nimi ei saa olla tyhjä"), validate_team])   
+        team = StringField("Joukkueen nimi", [validate_team])   
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
         member3 = StringField("Jäsen 3")
@@ -199,19 +202,29 @@ def modify_team():
 
     if request.method == "POST":
         form = modifyTeamForm()
-        form.validate()
+        isValid = form.validate()
+        #TODO: miksi isValid tuntuu aina olevan False?
+        print("isValid, POST", isValid)
+        if isValid:
+            print("POST, saa tallentaa kantaan")
     elif request.method == "GET" and request.args:
         form = modifyTeamForm(request.args)
-        form.validate()
+        isValid = form.validate()
+        print("isValid, GET", isValid)
     else:
         form = modifyTeamForm()
 
     form.set.choices = [(i[0], i[0]) for i in sarjat]
 
     try:
-        form.team.data = request.values.get("team")
-        if not form.team.data:
+        if request.method == "GET":
             form.team.data = session["team_name"]
+        else:
+            form.team.data = request.values.get("team").strip()
+            if form.team.data == "":
+                form.team.data = form.team.data
+            elif not form.team.data:
+                form.team.data = session["team_name"]
     except:
         #TODO: jotain
         pass
@@ -224,37 +237,62 @@ def modify_team():
         pass
 
     try:
-        form.member1.data = request.values.get("member1")
-        if not form.member1.data:
+        if request.method == "GET":
             form.member1.data = members_array[0]
+        else: 
+            form.member1.data = request.values.get("member1").strip()
+            if form.member1.data == "":
+                form.member1.data = form.member1.data
+            elif not form.member1.data:
+                form.member1.data = members_array[0]
     except:
         form.member1.data = ""
 
     try:
-        form.member2.data = request.values.get("member2")
-        if not form.member2.data:
+        if request.method == "GET":
             form.member2.data = members_array[1]
+        else:
+            form.member2.data = request.values.get("member2").strip()
+            if form.member2.data == "":
+                form.member2.data = form.member2.data
+            elif not form.member2.data:
+                form.member2.data = members_array[1]
     except:
         form.member2.data = ""
 
     try:
-        form.member3.data = request.values.get("member3")
-        if not form.member3.data:
+        if request.method == "GET":
             form.member3.data = members_array[2]
+        else:
+            form.member3.data = request.values.get("member3").strip()
+            if form.member3.data == "":
+                form.member3.data = form.member3.data
+            elif not form.member3.data:
+                form.member3.data = members_array[2]
     except:
         form.member3.data = ""
 
     try:
-        form.member4.data = request.values.get("member4")
-        if not form.member4.data:
+        if request.method == "GET":
             form.member4.data = members_array[3]
+        else:
+            form.member4.data = request.values.get("member4").strip()
+            if form.member4.data == "":
+                form.member4.data = form.member4.data
+            elif not form.member4.data:
+                form.member4.data = members_array[3]
     except:
         form.member4.data = ""
 
     try:
-        form.member5.data = request.values.get("member5")
-        if not form.member5.data:
+        if request.method == "GET":
             form.member5.data = members_array[4]
+        else:
+            form.member5.data = request.values.get("member5").strip()
+            if form.member5.data == "":
+                form.member5.data = form.member5.data
+            elif not form.member5.data:
+                form.member5.data = members_array[4]
     except:
         form.member5.data = ""
 
