@@ -2,6 +2,7 @@
 {% block content %}
 <h1>Muokkaa joukkuetta</h1>
 <form action="{{request.base_url}}" method="POST">
+    {{ form.csrf_token }}
     <div>
         <p>{{form.set.label}}</p>
         <div class="flex">

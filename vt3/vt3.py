@@ -41,6 +41,10 @@ def auth(f):
         return f(*args, **kwargs)
     return decorated
 
+@app.route('/', methods=['GET'])
+def redir():
+    return redirect(url_for("signin"))
+
 @app.route('/login', methods=['GET', 'POST'])
 def signin():
 
@@ -91,10 +95,10 @@ def signin():
             if m.hexdigest() == team[0][1]:
                 session['loggedin'] = "ok"
                 session["team_name"] = team[0][0]
+                session["team_id"] = team [0][2]
                 session["start_time"] = team[0][4]
                 session["race_name"] = race_name
                 session["race_year"] = race_year
-                print(session)
                 return redirect(url_for('team_list'))
             # jos ei ollut oikea salasana, pysytään kirjautumissivulla
             session.clear()
@@ -104,7 +108,8 @@ def signin():
             return render_template('login.xhtml', races=races, login_error=login_error)
     except:
         #TODO pass????
-        pass
+        session.clear()
+        return render_template('login.xhtml', races=races, login_error=login_error)
     #finally:
     #    con.close()
 
@@ -161,14 +166,19 @@ def modify_team():
     members_array = [x.strip() for x in members.split(",")]
     race_id = team[0][2]
 
-    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
-    def validate_members(form, field):
+    #hakee lomakkeelta jäsenet listaan
+    def get_members_from_form(form):
         members = []
         for i in form.data.items():
             if "member" in i[0]:
                 members.append(i[1].strip())
             while '' in members:
                 members.remove('')
+        return members
+
+    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
+    def validate_members(form, field):
+        members = get_members_from_form(form)
         if len(members) < 2:
             raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
         if len(members) != len(set(members)):
@@ -189,6 +199,18 @@ def modify_team():
                 if team[0].strip().lower() == field.data.strip().lower():
                     raise ValidationError("Kilpailussa on jo samanniminen joukkue")
         return
+
+    def save_to_db(team, members, id):
+        #TODO: laita hoitamaan myös sarjan muutos, nyt vaihtaa vain joukkueen ja jäsenten nimet
+        print("tallennetaan:", team, members, id)
+        sql = "UPDATE joukkueet SET joukkuenimi = %s, jasenet = %s WHERE id = %s"
+        cur = con.cursor()
+        try:
+            cur.execute(sql, (team, members, id))
+            con.commit()
+        except:
+            con.rollback()
+        return
             
     class modifyTeamForm(PolyglotForm):
         #radiobuttonien oikeat arvot syötetään myöhemmin
@@ -203,17 +225,17 @@ def modify_team():
     if request.method == "POST":
         form = modifyTeamForm()
         isValid = form.validate()
-        #TODO: miksi isValid tuntuu aina olevan False?
-        print("isValid, POST", isValid)
         if isValid:
             print("POST, saa tallentaa kantaan")
+            #TODO: kantaan tallennus
+            members = get_members_from_form(form)
+            save_to_db(request.values.get("team").strip(), str(members), session["team_id"])
     elif request.method == "GET" and request.args:
         form = modifyTeamForm(request.args)
-        isValid = form.validate()
-        print("isValid, GET", isValid)
     else:
         form = modifyTeamForm()
 
+    #lomakkeen tietojen täyttäminen
     form.set.choices = [(i[0], i[0]) for i in sarjat]
 
     try:
