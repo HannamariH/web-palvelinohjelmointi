@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="../static/css/tyylit.css" type="text/css" />
         <title>Rogaining</title>
     </head>
-
-    <body>
-        <h1>Kirjaudu</h1>
+    <body class="login">
+        <h1>Kirjaudu sisään</h1>
         {% if login_error %}
         <p>Kirjautuminen epäonnistui</p>
         {% endif %}
-        <form action="{{request.base_url}}" method="POST">
+        <form class="loginform" action="{{request.base_url}}" method="POST">
+            <div class="form-content">
             <p>
                 <label
-                    >Valitse kilpailu
-                    <select name="race">
+                    ><strong>Kilpailu</strong>
+            </br><select name="race">
                         {% for i in races %}
                         <option value="{{i}}">{{i}}</option>
                         {% endfor %}
@@ -22,17 +23,18 @@
             </p>
             <p>
                 <label
-                    >Joukkueen nimi <input type="text" name="username"
+                    ><strong>Joukkue</strong></br><input type="text" name="username"
                 /></label>
             </p>
             <p>
                 <label
-                    >Joukkueen salasana <input type="password" name="password"
+                    ><strong>Salasana</strong></br><input type="password" name="password"
                 /></label>
             </p>
-            <p>
-                <input type="submit" name="kirjaudu" value="Kirjaudu" />
-            </p>
+            <div class="center"><p>
+                <input type="submit" name="kirjaudu" value="Kirjaudu sisään" />
+            </p></div>
+            </div>
         </form>
     </body>
 </html>

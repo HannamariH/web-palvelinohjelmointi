@@ -1,9 +1,7 @@
 {% extends "layout.xhtml" %} 
 {% block title %}Joukkuelistaus{% endblock %}  
 {% block content %}
-<h1>Joukkuelistaus</h1>
-<p>{{ race_name }}</p>
-<p>{{ race_year }}</p>
+<h1>Kilpailun joukkueet</h1>
 <ul>
 {% for i in teams %}
     {%if not loop.previtem or loop.previtem[0] != i[0] %}

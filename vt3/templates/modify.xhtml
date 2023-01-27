@@ -1,25 +1,9 @@
 {% extends "layout.xhtml" %} {% block title %}Muokkaa joukkuetta{% endblock %}
 {% block content %}
-<h1>Muokkaa joukkuetta</h1>
-<form action="{{request.base_url}}" method="POST">
+<h1>Joukkue</h1>
+<form class="modify-form" action="{{request.base_url}}" method="POST">
     {{ form.csrf_token }}
     <div>
-        <p>{{form.set.label}}</p>
-        <div class="flex">
-            <div>
-                {% for subfield in form.set %}
-                <div class="radiolabel">
-                    {{ subfield }} {{ subfield.label }}
-                </div>
-                {% endfor %}
-            </div>
-            {% if form.set.errors %}
-            <p>
-                {% for error in form.set.errors %}
-                <span class="error">{{ error|e }}</span> {% endfor %}
-            </p>
-            {% endif %}
-        </div>
         <div class="flex">
             <p>{{form.team.label}} {{form.team}}</p>
             {% if form.team.errors %}
@@ -29,9 +13,18 @@
             </p>
             {% endif %}
         </div>
-        <p>Joukkueen jäsenet</p>
+        <p>{{form.set.label}} {{form.set}}</p>
         <div class="flex">
-            <div>
+            {% if form.set.errors %}
+            <p>
+                {% for error in form.set.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% endif %}
+        </div>
+        <p>Jäsenet</p>
+        <div class="flex">
+            <div class="right">
                 <p>{{form.member1.label}} {{form.member1}}</p>
                 <p>{{form.member2.label}} {{form.member2}}</p>
                 <p>{{form.member3.label}} {{form.member3}}</p>
@@ -82,7 +75,7 @@
         </div>
         </div>
         <p>
-            <input type="submit" name="muokkaa" value="Muokkaa" />
+            <input type="submit" name="muokkaa" value="Tallenna" />
         </p>
     </div>
 </form>

@@ -7,7 +7,7 @@ import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
 from polyglot import PolyglotForm
-from wtforms import StringField, RadioField, validators, ValidationError
+from wtforms import StringField, RadioField, SelectField, validators, ValidationError
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
@@ -56,7 +56,7 @@ def signin():
         #cur = con.cursor(buffered=True, dictionary=True)
         cur.execute(sql)
         races_init = cur.fetchall()
-        races = []
+        races = ["--Valitse kilpailu--"]
         for i in races_init:
             race = i[0]
             year = i[1].timetuple().tm_year
@@ -73,7 +73,7 @@ def signin():
             race_name = ""
             race_year = ""
         # haetaan annettujen joukkueen ja kilpailun tiedot
-        sql = """SELECT j.joukkuenimi, j.salasana, j.id, k.kisanimi, k.alkuaika FROM joukkueet j, sarjat s, kilpailut k
+        sql = """SELECT j.joukkuenimi, j.salasana, j.id, j.sarja, k.kisanimi, k.alkuaika, k.id FROM joukkueet j, sarjat s, kilpailut k
                 WHERE lower(j.joukkuenimi) = %s
                 AND k.kisanimi = %s
                 AND k.alkuaika like %s
@@ -95,10 +95,13 @@ def signin():
             if m.hexdigest() == team[0][1]:
                 session['loggedin'] = "ok"
                 session["team_name"] = team[0][0]
-                session["team_id"] = team [0][2]
-                session["start_time"] = team[0][4]
+                session["team_id"] = team[0][2]
+                session["set_id"] = team[0][3]
+                #poistetaan datetimestä kellonaika, pelkkä päiväys riittää
+                session["start_time"] = str(team[0][5]).split()[0]
                 session["race_name"] = race_name
                 session["race_year"] = race_year
+                session["race_id"] = team[0][6]
                 return redirect(url_for('team_list'))
             # jos ei ollut oikea salasana, pysytään kirjautumissivulla
             session.clear()
@@ -181,32 +184,34 @@ def modify_team():
         members = get_members_from_form(form)
         if len(members) < 2:
             raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
-        if len(members) != len(set(members)):
+        if len(members) != len(set(map(str.lower, members))):
             raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
 
-    #tarkistaa, ettei joukkueen nimi ole tyhjä ja ettei samannimistä joukkuetta vielä ole ko. kilpailussa
+    #tarkistaa, ettei joukkueen nimi ole tyhjä ja ettei samannimistä joukkuetta vielä ole ko. sarjassa
     def validate_team(form, field):
         field.data = field.data.strip()
         if not field.data:
             raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
         #jos joukkueen nimeä on muokattu lomakkeella
         if field.data.lower() != session["team_name"].lower():
-            sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s)"""       
+            sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
             cur = con.cursor()
-            cur.execute(sql, (race_id,))        
+            cur.execute(sql, (session["set_id"],))        
             teams = cur.fetchall()
             for team in teams:
                 if team[0].strip().lower() == field.data.strip().lower():
-                    raise ValidationError("Kilpailussa on jo samanniminen joukkue")
+                    raise ValidationError("Sarjassa on jo samanniminen joukkue")
         return
 
     def save_to_db(team, members, id):
         #TODO: laita hoitamaan myös sarjan muutos, nyt vaihtaa vain joukkueen ja jäsenten nimet
         print("tallennetaan:", team, members, id)
         sql = "UPDATE joukkueet SET joukkuenimi = %s, jasenet = %s WHERE id = %s"
+        #sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = '4 h'), joukkuenimi = 'roogroog', jasenet = '[a, b, c]' WHERE id = 545563"
         cur = con.cursor()
         try:
             cur.execute(sql, (team, members, id))
+            #cur.execute(sql, (session["race_id"], members, id))
             con.commit()
         except:
             con.rollback()
@@ -214,7 +219,7 @@ def modify_team():
             
     class modifyTeamForm(PolyglotForm):
         #radiobuttonien oikeat arvot syötetään myöhemmin
-        set = RadioField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
+        set = SelectField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
         team = StringField("Joukkueen nimi", [validate_team])   
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")

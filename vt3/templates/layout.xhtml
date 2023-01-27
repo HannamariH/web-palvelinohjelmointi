@@ -5,11 +5,12 @@
         <title>{% block title %}{% endblock %} - Rogaining</title>
     </head>
     <body>
-        <div id="header" style="display:flex;justify-content:space-evenly;">{% block header %}
-            <p>{{ race_name }} {{ start_time }}</p>
-            <p><a href="/modify">{{ team_name }}</a></p>
-            <p><a href="/teams">Joukkuelistaussivu</a></p>
-            {% endblock %}</div>
+        <ul id="header">{% block header %}
+            <li><a href="/login"><strong>Kilpailut</strong></a></li>
+            <li><strong>{{ race_name }} {{ start_time }}</strong></li>
+            <li><a href="/modify"><strong>{{ team_name }}</strong></a></li>
+            <li><a href="/teams"><strong>Listaa joukkueet</strong></a></li>
+            {% endblock %}</ul>
         <div id="content">{% block content %}{% endblock %}</div>
     </body>
 </html>

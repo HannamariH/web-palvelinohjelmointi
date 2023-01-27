@@ -1,14 +1,23 @@
-p, .radiolabel {
+* {
+    font-family: Arial;
+}
+
+.login {   
+    background-color: #CEEEFF; 
+}
+
+.loginform {
+    background-color: white;
+    border: 1px solid black;
+    width: 200px;
+}
+
+p {
     padding-left: 1em;
 }
 
 input {
     margin-right: 1em;
-    /*float: right;*/
-}
-
-input[type=submit] {
-    float: left;
 }
 
 .flex {
@@ -24,8 +33,36 @@ input[type=submit] {
     height: 1.5em;
 }
 
-button {
-    border: none;
-    background: none;
+input[type=submit] {
+    padding: 0.5em;
+    background-color: #239FF1;
+    color: white;
+}
+
+#header {
+    background-color: #239FF1;
+    list-style-type: none;
+    padding: 0.5em 0 0.5em 0;
+}
+
+#header a {
+    color: white;
+}
+
+#header li {
+    display: inline;
     padding: 0.5em;
 }
+
+.center {
+    text-align: center;
+}
+
+.modify-form {
+    width: 500px;
+    /*border: 1px solid black;*/
+}
+
+/*.modify-form select, .modify-form input[type=submit], .right {
+    float: right;
+}*/
