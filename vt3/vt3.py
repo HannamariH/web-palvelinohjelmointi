@@ -136,7 +136,7 @@ def team_list():
     teams_list = []
     for team in teams:
         members = team[2]
-        members = members.replace("[","").replace("]","").replace('"',"")
+        members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
         members_array = [x.strip() for x in members.split(",")]
         team_list = list(team)
         team_list[2] = members_array
@@ -147,7 +147,7 @@ def team_list():
 @app.route('/modify', methods=['GET', 'POST'])
 @auth
 def modify_team():
-    #haetaan ko. kisan sarjat radiobuttoneihin
+    #haetaan ko. kisan sarjat valikkoon
     sql = """SELECT s.sarjanimi FROM sarjat s
             WHERE s.kilpailu IN (
                 SELECT k.id FROM kilpailut k 
@@ -161,11 +161,11 @@ def modify_team():
     sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
             WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s;"""
     cur = con.cursor()
-    cur.execute(sql, (session["team_name"],))        
+    cur.execute(sql, (session["team_name"],))
     team = cur.fetchall()
     sarja = team[0][1]
     members = team[0][0]
-    members = members.replace("[","").replace("]","").replace('"',"")
+    members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
     members_array = [x.strip() for x in members.split(",")]
     race_id = team[0][2]
 
@@ -203,18 +203,17 @@ def modify_team():
                     raise ValidationError("Sarjassa on jo samanniminen joukkue")
         return
 
-    def save_to_db(team, members, id):
+    def save_to_db(team, members, team_id, set_name):
         #TODO: laita hoitamaan myös sarjan muutos, nyt vaihtaa vain joukkueen ja jäsenten nimet
-        print("tallennetaan:", team, members, id)
-        sql = "UPDATE joukkueet SET joukkuenimi = %s, jasenet = %s WHERE id = %s"
-        #sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = '4 h'), joukkuenimi = 'roogroog', jasenet = '[a, b, c]' WHERE id = 545563"
+        sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
         cur = con.cursor()
         try:
-            cur.execute(sql, (team, members, id))
-            #cur.execute(sql, (session["race_id"], members, id))
+            cur.execute(sql, (session["race_id"], set_name, team, members, team_id))
             con.commit()
+            session["team_name"] = team
         except:
             con.rollback()
+            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
         return
             
     class modifyTeamForm(PolyglotForm):
@@ -234,7 +233,7 @@ def modify_team():
             print("POST, saa tallentaa kantaan")
             #TODO: kantaan tallennus
             members = get_members_from_form(form)
-            save_to_db(request.values.get("team").strip(), str(members), session["team_id"])
+            save_to_db(request.values.get("team").strip(), str(members), session["team_id"], request.values.get("set"))
     elif request.method == "GET" and request.args:
         form = modifyTeamForm(request.args)
     else:
