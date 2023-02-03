@@ -133,11 +133,13 @@ def team_list():
     cur = con.cursor()
     cur.execute(sql, (race_year+"%", race_name))        
     teams = cur.fetchall()
+    #tehdään merkkijonomuotoisesta jäsenkentästä järjestetty lista
     teams_list = []
     for team in teams:
         members = team[2]
         members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
-        members_array = [x.strip() for x in members.split(",")]
+        #järjestää jäsenarrayn aakkosjärjestykseen kirjainkoosta välittämättä
+        members_array = sorted([x.strip() for x in members.split(",")], key=str.casefold)
         team_list = list(team)
         team_list[2] = members_array
         teams_list.append(team_list)
