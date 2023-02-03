@@ -50,8 +50,8 @@ input[type=submit] {
 }
 
 #header li {
-    display: inline;
-    padding: 0.5em;
+    display: inline-block;
+    padding: 0 0.5em 0 0.5em;
 }
 
 .center {
@@ -63,6 +63,6 @@ input[type=submit] {
     /*border: 1px solid black;*/
 }
 
-/*.modify-form select, .modify-form input[type=submit], .right {
+.right {
     float: right;
-}*/
+}

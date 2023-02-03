@@ -325,3 +325,8 @@ def modify_team():
         form.member5.data = ""
 
     return render_template("modify.xhtml", form=form, team=team, sarjat=sarjat, sarja=sarja, members=members_array, race_name=session["race_name"], race_year=session["race_year"], start_time=session["start_time"], team_name=session["team_name"])
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    session.clear()
+    return redirect(url_for("signin"))
