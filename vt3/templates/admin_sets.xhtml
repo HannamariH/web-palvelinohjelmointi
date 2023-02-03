@@ -1,0 +1,12 @@
+{% extends "admin_layout.xhtml" %} 
+{% block title %}Tietokannan kilpailut{%endblock %} 
+{% block content %}
+<h1>Kilpailun sarjat</h1>
+<ul>
+    {% for s in set %}
+    <li>
+        {{ s }}
+    </li>
+    {% endfor %
+</ul>
+{% endblock %}

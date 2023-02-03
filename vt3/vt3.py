@@ -41,6 +41,48 @@ def auth(f):
         return f(*args, **kwargs)
     return decorated
 
+def auth_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not "admin" in session:
+            return redirect(url_for("login_admin"))
+        return f(*args, **kwargs)
+    return decorated
+
+#tarkistaa, ettei joukkueen nimi ole tyhjä ja ettei samannimistä joukkuetta vielä ole ko. sarjassa
+def validate_team(form, field):
+    field.data = field.data.strip()
+    if not field.data:
+        raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
+    #jos joukkueen nimeä on muokattu lomakkeella
+    if field.data.lower() != session["team_name"].lower():
+        sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
+        cur = con.cursor()
+        cur.execute(sql, (session["set_id"],))        
+        teams = cur.fetchall()
+        for team in teams:
+            if team[0].strip().lower() == field.data.strip().lower():
+                raise ValidationError("Sarjassa on jo samanniminen joukkue")
+    return
+
+#tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
+def validate_members(form, field):
+    members = get_members_from_form(form)
+    if len(members) < 2:
+        raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
+    if len(members) != len(set(map(str.lower, members))):
+        raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
+
+#hakee lomakkeelta jäsenet listaan
+def get_members_from_form(form):
+    members = []
+    for i in form.data.items():
+        if "member" in i[0]:
+            members.append(i[1].strip())
+        while '' in members:
+            members.remove('')
+    return members
+
 @app.route('/', methods=['GET'])
 def redir():
     return redirect(url_for("signin"))
@@ -169,44 +211,9 @@ def modify_team():
     members = team[0][0]
     members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
     members_array = [x.strip() for x in members.split(",")]
-    race_id = team[0][2]
-
-    #hakee lomakkeelta jäsenet listaan
-    def get_members_from_form(form):
-        members = []
-        for i in form.data.items():
-            if "member" in i[0]:
-                members.append(i[1].strip())
-            while '' in members:
-                members.remove('')
-        return members
-
-    #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
-    def validate_members(form, field):
-        members = get_members_from_form(form)
-        if len(members) < 2:
-            raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
-        if len(members) != len(set(map(str.lower, members))):
-            raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
-
-    #tarkistaa, ettei joukkueen nimi ole tyhjä ja ettei samannimistä joukkuetta vielä ole ko. sarjassa
-    def validate_team(form, field):
-        field.data = field.data.strip()
-        if not field.data:
-            raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
-        #jos joukkueen nimeä on muokattu lomakkeella
-        if field.data.lower() != session["team_name"].lower():
-            sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
-            cur = con.cursor()
-            cur.execute(sql, (session["set_id"],))        
-            teams = cur.fetchall()
-            for team in teams:
-                if team[0].strip().lower() == field.data.strip().lower():
-                    raise ValidationError("Sarjassa on jo samanniminen joukkue")
-        return
+    race_id = team[0][2]    
 
     def save_to_db(team, members, team_id, set_name):
-        #TODO: laita hoitamaan myös sarjan muutos, nyt vaihtaa vain joukkueen ja jäsenten nimet
         sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
         cur = con.cursor()
         try:
@@ -219,7 +226,7 @@ def modify_team():
         return
             
     class modifyTeamForm(PolyglotForm):
-        #radiobuttonien oikeat arvot syötetään myöhemmin
+        #sarjavalikon oikeat arvot syötetään myöhemmin
         set = SelectField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
         team = StringField("Joukkueen nimi", [validate_team])   
         member1 = StringField("Jäsen 1", [validate_members])
@@ -232,8 +239,7 @@ def modify_team():
         form = modifyTeamForm()
         isValid = form.validate()
         if isValid:
-            print("POST, saa tallentaa kantaan")
-            #TODO: kantaan tallennus
+            #kantaan tallennus
             members = get_members_from_form(form)
             save_to_db(request.values.get("team").strip(), str(members), session["team_id"], request.values.get("set"))
     elif request.method == "GET" and request.args:
@@ -330,3 +336,70 @@ def modify_team():
 def logout():
     session.clear()
     return redirect(url_for("signin"))
+
+@app.route('/admin_logout', methods=['GET'])
+def admin_logout():
+    session.clear()
+    return redirect(url_for("login_admin"))
+
+@app.route('/admin', methods=['GET', 'POST'])
+def login_admin():
+    session.clear()
+    password = request.form.get("password", "")   
+    username = request.form.get("username", "") 
+    m = hashlib.sha512()
+    try:
+        m.update(password.encode("UTF-8"))
+        m.update(username.encode("UTF-8"))
+        if m.hexdigest() == "8450eca01665516d9aeb5317764902b78495502637c96192c81b1683d32d691a0965cf037feca8b9ed9ee6fc6ab8f27fce8f77c4fd9b4a442a00fc317b8237e6":
+            session['admin'] = True
+            return redirect(url_for('races'))
+        # jos ei ollut oikea salasana, pysytään kirjautumissivulla
+        return render_template('admin_login.xhtml')
+    except:
+        return render_template('admin_login.xhtml')
+
+@app.route('/admin_races', methods=['GET', 'POST'])
+@auth_admin
+def races():
+    #haetaan tietokannasta joukkuelistaus aikajärjestyksessä
+    sql = """SELECT kisanimi, alkuaika FROM kilpailut ORDER BY alkuaika;"""
+    cur = con.cursor()
+    cur.execute(sql,)
+    races = cur.fetchall()
+    #poistetaan alkuajoista kellonaika
+    races_with_dates = []
+    for race in races:
+        race_date = race[1].date()
+        races_with_dates.append((race[0], race_date))
+    return render_template("admin_races.xhtml", races=races_with_dates)
+
+@app.route('/admin/<race>/sets', methods=['GET', 'POST'])
+@auth_admin
+def sets(race):
+    print(race)
+    session["race"] = race
+    #TODO: hae ko. kisan sarjat
+    return render_template("admin_sets.xhtml", race=race)
+
+@app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
+@auth_admin
+def teams(race, set):
+    #TODO: hae ko. kisan ja sarjan joukkueet
+
+    class adminAddTeamForm(PolyglotForm):
+        #sarjavalikon oikeat arvot syötetään myöhemmin
+        team = StringField("Joukkueen nimi", [validate_team])   
+        password = StringField("Salasana", []) 
+        member1 = StringField("Jäsen 1", [validate_members])
+        member2 = StringField("Jäsen 2")
+        member3 = StringField("Jäsen 3")
+        member4 = StringField("Jäsen 4")
+        member5 = StringField("Jäsen 5")
+
+    return render_template("admin_teams.xhtml")
+
+@app.route('/admin/<team>', methods=['GET', 'POST'])
+@auth_admin
+def team(team):
+    return render_template("admin_team.xhtml")

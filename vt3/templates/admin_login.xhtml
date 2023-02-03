@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="../static/css/tyylit.css" type="text/css" />
+        <title>Rogaining</title>
+    </head>
+    <body class="login">
+        <h1>Kirjaudu sisään</h1>
+        {% if login_error %}
+        <p>Kirjautuminen epäonnistui</p>
+        {% endif %}
+        <form class="loginform" action="{{request.base_url}}" method="POST">
+            <div class="form-content">
+            <p>
+                <label
+                    ><strong>Tunnus</strong></br><input type="text" name="username"
+                /></label>
+            </p>
+            <p>
+                <label
+                    ><strong>Salasana</strong></br><input type="password" name="password"
+                /></label>
+            </p>
+            <div class="center"><p>
+                <input type="submit" name="kirjaudu" value="Kirjaudu sisään" />
+            </p></div>
+            </div>
+        </form>
+    </body>
+</html>
