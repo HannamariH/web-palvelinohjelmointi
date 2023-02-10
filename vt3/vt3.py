@@ -2,6 +2,7 @@ from flask import Flask, session, redirect, url_for, escape, request, Response, 
 import hashlib
 import io
 import json
+import urllib.parse
 from functools import wraps
 import mysql.connector
 import mysql.connector.pooling
@@ -367,20 +368,28 @@ def races():
     cur = con.cursor()
     cur.execute(sql,)
     races = cur.fetchall()
-    #poistetaan alkuajoista kellonaika
+    #poistetaan alkuajoista kellonaika, luodaan enkoodattu url-parametri
     races_with_dates = []
     for race in races:
         race_date = race[1].date()
-        races_with_dates.append((race[0], race_date))
+        race_for_url = urllib.parse.quote(race[0] + " " + str(race_date))
+        races_with_dates.append((race[0], race_date, race_for_url))
     return render_template("admin_races.xhtml", races=races_with_dates)
 
 @app.route('/admin/<race>/sets', methods=['GET', 'POST'])
 @auth_admin
 def sets(race):
-    print(race)
     session["race"] = race
-    #TODO: hae ko. kisan sarjat
-    return render_template("admin_sets.xhtml", race=race)
+    #erotetaan toisistaan kisan nimi ja alkuaika
+    race_list = race.split()
+    race_name = race_list[0]
+    race_date = race_list[1]
+    #haetaan ko. kisan sarjat
+    sql = """SELECT s.sarjanimi FROM sarjat s WHERE s.kilpailu in (SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s) ORDER BY s.sarjanimi"""
+    cur = con.cursor()
+    cur.execute(sql,(race_name, race_date+"%"))
+    sets = cur.fetchall()
+    return render_template("admin_sets.xhtml", sets=sets, race=race)
 
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin

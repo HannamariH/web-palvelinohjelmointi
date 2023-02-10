@@ -2,9 +2,9 @@
 {% block title %}Tietokannan kilpailut{%endblock %} 
 {% block content %}
 <h1>Tietokannan kilpailut</h1>
-{% for i in races %}
 <ul>
-    <li><a href="/{{race}}/sets">{{i[0]}}</a> {{i[1]}}</li>
+    {% for i in races %}
+    <li><a href="/admin/{{i[2]}}/sets">{{i[0]}}</a> {{i[1]}}</li>
+    {% endfor %} 
 </ul>
-{% endfor %} 
 {% endblock %}

@@ -3,10 +3,8 @@
 {% block content %}
 <h1>Kilpailun sarjat</h1>
 <ul>
-    {% for s in set %}
-    <li>
-        {{ s }}
-    </li>
-    {% endfor %
+    {% for s in sets %}
+        <li><a href="/admin/{{race}}/{{s[0]}}/teams">{{s[0]}}</a></li>
+    {% endfor %}
 </ul>
 {% endblock %}
