@@ -2,4 +2,87 @@
 {% block title %}Tietokannan kilpailut{%endblock %} 
 {% block content %}
 <h1>Sarjan joukkueet</h1>
+<form class="modify-form" action="{{request.base_url}}" method="POST">
+    {{ form.csrf_token }}
+    <div>
+        <div class="flex">
+            <p>{{form.team.label}} {{form.team}}</p>
+            {% if form.team.errors %}
+            <p>
+                {% for error in form.team.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% endif %}
+        </div>
+        <div class="flex">
+            <p>{{form.password.label}} {{form.password}}</p>
+            {% if form.password.errors %}
+            <p>
+                {% for error in form.password.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% endif %}
+        </div>
+        <p>Jäsenet</p>
+        <div class="flex">
+            <div class="right">
+                <p>{{form.member1.label}} {{form.member1}}</p>
+                <p>{{form.member2.label}} {{form.member2}}</p>
+                <p>{{form.member3.label}} {{form.member3}}</p>
+                <p>{{form.member4.label}} {{form.member4}}</p>
+                <p>{{form.member5.label}} {{form.member5}}</p>
+            </div>
+            <div>
+            {% if form.member1.errors %}
+            <p>
+                {% for error in form.member1.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% else %}
+            <p class="no-error"></p>
+            {% endif %} 
+            {% if form.member2.errors %}
+            <p>
+                {% for error in form.member2.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% else %}
+            <p class="no-error"></p>
+            {% endif %} 
+            {% if form.member3.errors %}
+            <p>
+                {% for error in form.member3.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% else %}
+            <p class="no-error"></p>
+            {% endif %} 
+            {% if form.member4.errors %}
+            <p>
+                {% for error in form.member4.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% else %}
+            <p class="no-error"></p>
+            {% endif %} 
+            {% if form.member5.errors %}
+            <p>
+                {% for error in form.member5.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            </p>
+            {% else %}
+            <p class="no-error"></p>
+            {% endif %}
+        </div>
+        </div>
+        <p>
+            <input type="submit" name="muokkaa" value="Tallenna" />
+        </p>
+    </div>
+</form>
+<ul>
+{% for team in teams %}
+<li><a href="/admin/{{race}}/{{team[0]}}">{{team[0]}}</a></li>
+{% endfor %}
+</ul>
 {% endblock %}

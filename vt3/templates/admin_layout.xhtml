@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="../static/css/tyylit.css" type="text/css" />
+        <link rel="stylesheet" href="../../../static/css/tyylit.css" type="text/css" />
         <title>{% block title %}{% endblock %} - Rogaining</title>
     </head>
     <body>
         <ul id="header">{% block header %}
-            <li><a href="/admin_races"><strong>ADMIN</strong></a></li>
-            <li><a href="/admin_races"><strong>Kilpailut</strong></a></li>
-            <li><a href="/admin_sets"><strong>Sarjat</strong></a></li>
-            <li><a href="/admin_teams"><strong>Joukkueet</strong></a></li>
-            <li><a href="/admin_team"><strong>Joukkue</strong></a></li>
-            <li class="right"><a href="/admin_logout"><strong>Logout</strong></a></li>
+            <li><a href="/admin/races"><strong>ADMIN</strong></a></li>
+            <li><a href="/admin/races"><strong>Kilpailut</strong></a></li>
+            <li><a href="/admin/sets"><strong>Sarjat</strong></a></li>
+            <li><a href="/admin/teams"><strong>Joukkueet</strong></a></li>
+            <li><a href="/admin/team"><strong>Joukkue</strong></a></li>
+            <li class="right"><a href="/admin/logout"><strong>Logout</strong></a></li>
             {% endblock %}</ul>
         <div id="content">{% block content %}{% endblock %}</div>
     </body>

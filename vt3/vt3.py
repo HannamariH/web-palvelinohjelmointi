@@ -338,7 +338,7 @@ def logout():
     session.clear()
     return redirect(url_for("signin"))
 
-@app.route('/admin_logout', methods=['GET'])
+@app.route('/admin/logout', methods=['GET'])
 def admin_logout():
     session.clear()
     return redirect(url_for("login_admin"))
@@ -360,7 +360,7 @@ def login_admin():
     except:
         return render_template('admin_login.xhtml')
 
-@app.route('/admin_races', methods=['GET', 'POST'])
+@app.route('/admin/races', methods=['GET', 'POST'])
 @auth_admin
 def races():
     #haetaan tietokannasta joukkuelistaus aikajärjestyksessä
@@ -394,7 +394,23 @@ def sets(race):
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
-    #TODO: hae ko. kisan ja sarjan joukkueet
+    #TODO: hae ko. kisan ja sarjan joukkueet, ensin kisan id
+    race_list = race.split()
+    race_name = race_list[0]
+    race_date = race_list[1]
+    sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
+    cur = con.cursor()
+    cur.execute(sql,(race_name, race_date+"%"))
+    race_id = cur.fetchall()
+    race_id = race_id[0][0]
+    session["race_id"] = race_id
+
+    sql = """SELECT joukkuenimi, id FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s)"""
+    cur = con.cursor()
+    cur.execute(sql,(race_id, set))
+    teams = cur.fetchall()
+    print("teams", teams)
+    #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
 
     class adminAddTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
@@ -406,9 +422,22 @@ def teams(race, set):
         member4 = StringField("Jäsen 4")
         member5 = StringField("Jäsen 5")
 
-    return render_template("admin_teams.xhtml")
+    #TODO: tarkista, toimiiko samat validoinnit tässä kuin /modifyssa
+    if request.method == "POST":
+        form = adminAddTeamForm()
+        isValid = form.validate()
+        if isValid:
+            #TODO: kantaan tallennus
+            print("on validi")
+    elif request.method == "GET" and request.args:
+        form = adminAddTeamForm(request.args)
+    else:
+        form = adminAddTeamForm()
 
-@app.route('/admin/<team>', methods=['GET', 'POST'])
+    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race)
+
+@app.route('/admin/<race>/<team>', methods=['GET', 'POST'])
 @auth_admin
-def team(team):
-    return render_template("admin_team.xhtml")
+def team(race, team):
+    return ("Hello", team)
+    #return render_template("admin_team.xhtml")
