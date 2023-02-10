@@ -20,8 +20,11 @@ input {
     margin-right: 1em;
 }
 
-.flex {
+.flex-container {
     display: flex;
+    width: 600px;
+    justify-content: space-between;
+    padding: 1em;
 }
 
 .error {
@@ -31,12 +34,20 @@ input {
 
 .no-error {
     height: 1.5em;
+    /*width: 1px;*/
 }
 
 input[type=submit] {
     padding: 0.5em;
     background-color: #239FF1;
     color: white;
+}
+
+/* TODO: tässä oikeilla jäljillä! laita toimimaan myös Jäsen-laatikoille!
+Vaikuttaako jäsenten p-tagit?*/
+input[type=text], testi {
+    float: right;
+    /*text-align: right;*/
 }
 
 #header {
@@ -58,9 +69,8 @@ input[type=submit] {
     text-align: center;
 }
 
-.modify-form {
-    width: 500px;
-    /*border: 1px solid black;*/
+label {
+    text-align: left;
 }
 
 .right {
