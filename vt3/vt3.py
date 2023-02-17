@@ -409,7 +409,6 @@ def teams(race, set):
     cur = con.cursor()
     cur.execute(sql,(race_id, set))
     teams = cur.fetchall()
-    print("teams", teams)
     #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
 
     class adminAddTeamForm(PolyglotForm):
@@ -424,7 +423,9 @@ def teams(race, set):
 
     #TODO: tarkista, toimiiko samat validoinnit tässä kuin /modifyssa
     if request.method == "POST":
+        print(session)
         form = adminAddTeamForm()
+        #TODO: validointi ei tällaisenaan toimi, koska session["team_name"] ei ole olemassa
         isValid = form.validate()
         if isValid:
             #TODO: kantaan tallennus

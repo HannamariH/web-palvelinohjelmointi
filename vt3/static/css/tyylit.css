@@ -20,22 +20,9 @@ input {
     margin-right: 1em;
 }
 
-/*TODO: tarvitaanko tätä? toinen flex-container-määritys alempana*/
-/*.flex-container {
-    display: flex;
-    width: 600px;
-    justify-content: space-between;
-    padding: 1em;
-}*/
-
 .error {
     color: red;
     padding-left: 1em;
-}
-
-.no-error {
-    height: 1.5em;
-    /*width: 1px;*/
 }
 
 input[type="submit"] {
@@ -89,6 +76,34 @@ label {
         "jasenet jasen4 jasen4-input"
         "jasenet jasen5 jasen5-input"
         "jasenet . tallenna";
+}
+
+.modify-form {
+    display: grid;
+    width: 70%;
+    grid-template-columns: 15% 10% 20%;
+    grid-template-rows: auto;
+    grid-gap: 1em;
+    grid-template-areas: 
+        "joukkueen-nimi . joukkueen-nimi-input"
+        "set . set-input"
+        "jasenet jasen1 jasen1-input"
+        "jasenet jasen2 jasen2-input"
+        "jasenet jasen3 jasen3-input"
+        "jasenet jasen4 jasen4-input"
+        "jasenet jasen5 jasen5-input"
+        "jasenet . tallenna";
+}
+
+.set {
+    grid-area: set;
+}
+
+.set-input {
+    grid-area: set-input;   
+    width: 50px; 
+    justify-self: end;
+    margin-right: 1em;
 }
 
 .joukkueen-nimi {
