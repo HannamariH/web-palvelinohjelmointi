@@ -2,8 +2,8 @@
     font-family: Arial;
 }
 
-.login {   
-    background-color: #CEEEFF; 
+.login {
+    background-color: #ceeeff;
 }
 
 .loginform {
@@ -20,12 +20,13 @@ input {
     margin-right: 1em;
 }
 
-.flex-container {
+/*TODO: tarvitaanko tätä? toinen flex-container-määritys alempana*/
+/*.flex-container {
     display: flex;
     width: 600px;
     justify-content: space-between;
     padding: 1em;
-}
+}*/
 
 .error {
     color: red;
@@ -37,21 +38,14 @@ input {
     /*width: 1px;*/
 }
 
-input[type=submit] {
+input[type="submit"] {
     padding: 0.5em;
-    background-color: #239FF1;
+    background-color: #239ff1;
     color: white;
 }
 
-/* TODO: tässä oikeilla jäljillä! laita toimimaan myös Jäsen-laatikoille!
-Vaikuttaako jäsenten p-tagit?*/
-input[type=text], testi {
-    float: right;
-    /*text-align: right;*/
-}
-
 #header {
-    background-color: #239FF1;
+    background-color: #239ff1;
     list-style-type: none;
     padding: 0.5em 0 0.5em 0;
 }
@@ -75,4 +69,129 @@ label {
 
 .right {
     float: right;
+}
+
+.flex-container {
+    display: flex;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
+    grid-gap: 1em;
+    grid-template-areas:
+        "joukkueen-nimi . joukkueen-nimi-input"
+        "salasana . salasana-input"
+        "jasenet jasen1 jasen1-input"
+        "jasenet jasen2 jasen2-input"
+        "jasenet jasen3 jasen3-input"
+        "jasenet jasen4 jasen4-input"
+        "jasenet jasen5 jasen5-input"
+        "jasenet . tallenna";
+}
+
+.joukkueen-nimi {
+    grid-area: joukkueen-nimi;
+}
+
+.joukkueen-nimi-input {
+    grid-area: joukkueen-nimi-input;
+}
+
+.salasana {
+    grid-area: salasana;
+}
+
+.salasana-input {
+    grid-area: salasana-input;
+}
+
+.jasenet {
+    grid-area: jasenet;
+}
+
+.jasen1 {
+    grid-area: jasen1;
+    justify-self: end;
+}    
+
+.jasen1-input {
+    grid-area: jasen1-input;
+}
+
+.jasen2 {
+    grid-area: jasen2;
+    justify-self: end;
+}
+
+.jasen2-input {
+    grid-area: jasen2-input;
+}
+
+.jasen3 {
+    grid-area: jasen3;
+    justify-self: end;
+}
+
+.jasen3-input {
+    grid-area: jasen3-input;
+}
+
+.jasen4 {
+    grid-area: jasen4;
+    justify-self: end;
+}
+
+.jasen4-input {
+    grid-area: jasen4-input;
+}
+
+.jasen5 {
+    grid-area: jasen5;
+    justify-self: end;
+}
+
+.jasen5-input {
+    grid-area: jasen5-input;
+}
+
+.error-teamname {
+    grid-column: 4 / 5;
+    grid-row: 1 / 1;
+}
+
+.error-jasen1 {
+    grid-column: 4 / 5;
+    grid-row: 3 / 4;
+}
+
+.error-jasen2 {
+    grid-column: 4 / 5;
+    grid-row: 4 / 5;
+}
+
+.error-jasen3 {
+    grid-column: 4 / 5;
+    grid-row: 5 / 6;
+}
+
+.error-jasen4 {
+    grid-column: 4 / 5;
+    grid-row: 6 / 7;
+}
+
+.error-jasen5 {
+    grid-column: 4 / 5;
+    grid-row: 7 / 8;
+}
+
+.tallenna {
+    grid-area: tallenna;
+    justify-self: end;
+}
+
+.teams {
+    margin-left: 1em;
+    margin-top: 0;
 }
