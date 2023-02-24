@@ -8,7 +8,7 @@ import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
 from polyglot import PolyglotForm
-from wtforms import StringField, RadioField, SelectField, validators, ValidationError
+from wtforms import StringField, PasswordField, SelectField, validators, ValidationError
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
@@ -55,8 +55,8 @@ def validate_team(form, field):
     field.data = field.data.strip()
     if not field.data:
         raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
-    #jos joukkueen nimeä on muokattu lomakkeella
-    if field.data.lower() != session["team_name"].lower():
+    #jos lisätään uusi joukkue tai joukkueen nimeä on muokattu lomakkeella
+    if not "team_name" in session.keys() or (field.data.lower() != session["team_name"].lower()):
         sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
         cur = con.cursor()
         cur.execute(sql, (session["set_id"],))        
@@ -338,6 +338,8 @@ def logout():
     session.clear()
     return redirect(url_for("signin"))
 
+#------------admin-puolen reitit-----------------------
+
 @app.route('/admin/logout', methods=['GET'])
 def admin_logout():
     session.clear()
@@ -394,7 +396,6 @@ def sets(race):
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
-    #TODO: hae ko. kisan ja sarjan joukkueet, ensin kisan id
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
@@ -405,31 +406,70 @@ def teams(race, set):
     race_id = race_id[0][0]
     session["race_id"] = race_id
 
-    sql = """SELECT joukkuenimi, id FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s)"""
+    sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi"""
     cur = con.cursor()
     cur.execute(sql,(race_id, set))
     teams = cur.fetchall()
+    session["set_id"] = teams[0][1]
+    teams = [team[0] for team in teams]        
+
     #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
 
     class adminAddTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
         team = StringField("Joukkueen nimi", [validate_team])   
-        password = StringField("Salasana", []) 
+        password = PasswordField("Salasana", []) 
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
         member3 = StringField("Jäsen 3")
         member4 = StringField("Jäsen 4")
         member5 = StringField("Jäsen 5")
 
-    #TODO: tarkista, toimiiko samat validoinnit tässä kuin /modifyssa
     if request.method == "POST":
-        print(session)
         form = adminAddTeamForm()
-        #TODO: validointi ei tällaisenaan toimi, koska session["team_name"] ei ole olemassa
         isValid = form.validate()
         if isValid:
-            #TODO: kantaan tallennus
-            print("on validi")
+            #tallennetaan joukkue tietokantaan
+            team = request.values.get("team").strip()
+            members = str(get_members_from_form(form))
+            sql = "INSERT INTO joukkueet (joukkuenimi, sarja, jasenet) VALUES (%s, %s, %s)"
+            cur = con.cursor()
+            try:
+                cur.execute(sql, (team, session["set_id"], members))
+                con.commit()
+                session["team_name"] = team 
+
+                #salasanan lisäys kantaan juuri lisätylle joukkueelle
+                try:
+                    password = request.values.get("password").strip()
+                    if password == "":
+                        password = "ties4080"
+                except:
+                    password = "ties4080"
+                team_id = cur.lastrowid
+                m = hashlib.sha512()
+                m.update(str(team_id).encode("UTF-8"))
+                m.update(password.encode("UTF-8"))  
+                password = m.hexdigest()
+                sql = "UPDATE joukkueet SET salasana = %s WHERE id = %s"
+                cur = con.cursor()
+                try:
+                    cur.execute(sql, (password, team_id))
+                    con.commit()
+                    #lisätään uusi joukkue joukkuelistaan
+                    teams.append(team)
+                    teams.sort()
+                    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race)
+                except:
+                    con.rollback()
+                    #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+            except:
+                con.rollback()
+                #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+
+            
+            
+
     elif request.method == "GET" and request.args:
         form = adminAddTeamForm(request.args)
     else:
