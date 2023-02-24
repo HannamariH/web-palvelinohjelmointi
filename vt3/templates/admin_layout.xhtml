@@ -8,9 +8,12 @@
         <ul id="header">{% block header %}
             <li><a href="/admin/races"><strong>ADMIN</strong></a></li>
             <li><a href="/admin/races"><strong>Kilpailut</strong></a></li>
-            <li><a href="/admin/sets"><strong>Sarjat</strong></a></li>
-            <li><a href="/admin/teams"><strong>Joukkueet</strong></a></li>
-            <li><a href="/admin/team"><strong>Joukkue</strong></a></li>
+            <!--Sarjat vie sivulle, jossa listataan viimeksi valitun kilpailun sarjat. Jos kilpailua ei ole vielä valittu, ohjaudutaan Kilpailut-sivulle-->
+            <li><a href="/admin/{{race}}/sets"><strong>Sarjat</strong></a></li>
+            <!--Joukkueet vie sivulle, jossa listataan viimeksi valitun sarjan joukkueet. Jos sarjaa ei ole vielä valittu, ohjaudutaan Sarjat-sivulle-->
+            <li><a href="/admin/{{race}}/{{set}}/teams"><strong>Joukkueet</strong></a></li>
+            <!--Joukkue vie sivulle, jossa muokataan viimeksi valitun tai lisätyn joukkueen tietoja. Jos joukkuetta ei ole vielä kertaakaan valittu tai lisätty, ohjaudutaan Joukkueet-sivulle-->
+            <li><a href="/admin/{{race}}/{{team}}"><strong>Joukkue</strong></a></li>
             <li class="right"><a href="/admin/logout"><strong>Logout</strong></a></li>
             {% endblock %}</ul>
         <div id="content">{% block content %}{% endblock %}</div>

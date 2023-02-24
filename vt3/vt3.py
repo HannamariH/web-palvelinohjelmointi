@@ -382,6 +382,8 @@ def races():
 @auth_admin
 def sets(race):
     session["race"] = race
+    session.pop("set_id", None)
+    session.pop("team_name", None)
     #erotetaan toisistaan kisan nimi ja alkuaika
     race_list = race.split()
     race_name = race_list[0]
@@ -396,6 +398,7 @@ def sets(race):
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
+    #TODO: voisiko näitä selectejä yhdistää?
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
@@ -405,13 +408,17 @@ def teams(race, set):
     race_id = cur.fetchall()
     race_id = race_id[0][0]
     session["race_id"] = race_id
+    #haetaan sarja_id sarjan nimen ja k.id:n perusteella
+    sql = """SELECT id FROM sarjat WHERE sarjanimi LIKE %s and kilpailu LIKE %s"""
+    cur = con.cursor()
+    cur.execute(sql,(set, race_id))
+    session["set_id"] = cur.fetchall()[0][0]
 
     sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi"""
     cur = con.cursor()
     cur.execute(sql,(race_id, set))
     teams = cur.fetchall()
-    session["set_id"] = teams[0][1]
-    teams = [team[0] for team in teams]        
+    teams = [team[0] for team in teams]     
 
     #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
 
@@ -459,7 +466,7 @@ def teams(race, set):
                     #lisätään uusi joukkue joukkuelistaan
                     teams.append(team)
                     teams.sort()
-                    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race)
+                    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
                 except:
                     con.rollback()
                     #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
