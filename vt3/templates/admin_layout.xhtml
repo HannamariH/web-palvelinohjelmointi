@@ -9,11 +9,37 @@
             <li><a href="/admin/races"><strong>ADMIN</strong></a></li>
             <li><a href="/admin/races"><strong>Kilpailut</strong></a></li>
             <!--Sarjat vie sivulle, jossa listataan viimeksi valitun kilpailun sarjat. Jos kilpailua ei ole vielä valittu, ohjaudutaan Kilpailut-sivulle-->
+            {% if race is defined %}
             <li><a href="/admin/{{race}}/sets"><strong>Sarjat</strong></a></li>
+            {% else %}
+            <li><a href="/admin/races"><strong>Sarjat</strong></a></li>
+            {% endif %}
+
             <!--Joukkueet vie sivulle, jossa listataan viimeksi valitun sarjan joukkueet. Jos sarjaa ei ole vielä valittu, ohjaudutaan Sarjat-sivulle-->
-            <li><a href="/admin/{{race}}/{{set}}/teams"><strong>Joukkueet</strong></a></li>
+            {% if race is defined %}
+                {% if set is defined %}
+                <li><a href="/admin/{{race}}/{{set}}/teams"><strong>Joukkueet</strong></a></li>
+                {% else %}
+                <li><a href="/admin/{{race}}/sets"><strong>Joukkueet</strong></a></li>
+                {% endif %}
+            {% else %}
+            <li><a href="/admin/races"><strong>Joukkueet</strong></a></li>
+            {% endif %}
+            
             <!--Joukkue vie sivulle, jossa muokataan viimeksi valitun tai lisätyn joukkueen tietoja. Jos joukkuetta ei ole vielä kertaakaan valittu tai lisätty, ohjaudutaan Joukkueet-sivulle-->
-            <li><a href="/admin/{{race}}/{{team}}"><strong>Joukkue</strong></a></li>
+            {% if race is defined %}
+                {% if set is defined %}
+                    {% if team is defined %}
+                        <li><a href="/admin/{{race}}/{{team}}"><strong>Joukkue</strong></a></li>
+                    {% else %}
+                        <li><a href="/admin/{{race}}/{{set}}/teams"><strong>Joukkue</strong></a></li>
+                    {% endif %}
+                {% else %}
+                    <li><a href="/admin/{{race}}/sets"><strong>Joukkue</strong></a></li>
+                {% endif %}
+            {% else %}
+            <li><a href="/admin/races"><strong>Joukkue</strong></a></li>
+            {% endif %} 
             <li class="right"><a href="/admin/logout"><strong>Logout</strong></a></li>
             {% endblock %}</ul>
         <div id="content">{% block content %}{% endblock %}</div>
