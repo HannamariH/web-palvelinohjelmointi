@@ -2,4 +2,48 @@
 {% block title %}Tietokannan kilpailut{%endblock %} 
 {% block content %}
 <h1>Joukkue</h1>
+<form class="admin-modify-form" action="{{request.base_url}}" method="POST">
+    {{ form.csrf_token }}
+        {{form.team.label(class_="joukkueen-nimi")}} {{form.team(class_="joukkueen-nimi-input")}}
+        {% if form.team.errors %}
+            {% for error in form.team.errors %}
+                <span class="error error-teamname">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+        {{form.password.label(class_="password")}} {{form.password(class_="password-input")}}
+        {{form.set.label(class_="rb-set")}} {{form.set(class_="rb-set-input")}}
+            {% if form.set.errors %}
+                {% for error in form.set.errors %}
+                <span class="error">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+        <div class="jasenet">Jäsenet</div>
+        {{form.member1.label(class_="jasen1")}} {{form.member1(class_="jasen1-input")}} 
+            {% if form.member1.errors %}
+                {% for error in form.member1.errors %}
+                <span class="error error-jasen1">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+            {{form.member2.label(class_="jasen2")}} {{form.member2(class_="jasen2-input")}}
+            {% if form.member2.errors %}
+                {% for error in form.member2.errors %}
+                <span class="error error-jasen2">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+            {{form.member3.label(class_="jasen3")}} {{form.member3(class_="jasen3-input")}}
+            {% if form.member3.errors %}
+                {% for error in form.member3.errors %}
+                <span class="error error-jasen3">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+            {{form.member4.label(class_="jasen4")}} {{form.member4(class_="jasen4-input")}}
+            {% if form.member4.errors %}
+                {% for error in form.member4.errors %}
+                <span class="error error-jasen4">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+            {{form.member5.label(class_="jasen5")}} {{form.member5(class_="jasen5-input")}}
+            {% if form.member5.errors %}
+                {% for error in form.member5.errors %}
+                <span class="error error-jasen5">{{ error|e }}</span> {% endfor %}
+            {% endif %}
+            {{form.remove.label(class_="remove")}} {{form.remove(class_="remove-input")}}
+        <p class="tallenna">
+            <input type="submit" name="muokkaa" value="Tallenna" />
+        </p>
+</form>
 {% endblock %}

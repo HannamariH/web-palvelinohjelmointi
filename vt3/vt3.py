@@ -8,7 +8,7 @@ import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
 from polyglot import PolyglotForm
-from wtforms import StringField, PasswordField, SelectField, validators, ValidationError
+from wtforms import StringField, PasswordField, SelectField, RadioField, BooleanField, validators, ValidationError
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
@@ -204,9 +204,9 @@ def modify_team():
 
     #haetaan joukkueen tiedot valmiiksi lomakkeelle
     sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
-            WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s;"""
+            WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
     cur = con.cursor()
-    cur.execute(sql, (session["team_name"],))
+    cur.execute(sql, (session["team_name"], session["race_id"]))
     team = cur.fetchall()
     sarja = team[0][1]
     members = team[0][0]
@@ -365,6 +365,7 @@ def login_admin():
 @app.route('/admin/races', methods=['GET', 'POST'])
 @auth_admin
 def races():
+    print(session)
     #haetaan tietokannasta joukkuelistaus aikajärjestyksessä
     sql = """SELECT kisanimi, alkuaika FROM kilpailut ORDER BY alkuaika;"""
     cur = con.cursor()
@@ -378,27 +379,39 @@ def races():
         races_with_dates.append((race[0], race_date, race_for_url))
     return render_template("admin_races.xhtml", races=races_with_dates)
 
+#näyttää valitun kilpailut sarjat
 @app.route('/admin/<race>/sets', methods=['GET', 'POST'])
 @auth_admin
 def sets(race):
-    session["race"] = race
-    session.pop("set_id", None)
-    session.pop("team_name", None)
     #erotetaan toisistaan kisan nimi ja alkuaika
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
-    #haetaan ko. kisan sarjat
-    sql = """SELECT s.sarjanimi FROM sarjat s WHERE s.kilpailu in (SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s) ORDER BY s.sarjanimi"""
+    #haetaan k.id, joka tallennetaan session["race_id"]:hen
+    sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
     cur = con.cursor()
     cur.execute(sql,(race_name, race_date+"%"))
+    race_id = cur.fetchall()[0][0]
+    #race_id sessioon, jos se muuttui
+    print("race_id", race_id)
+    if not "race_id" in session.keys() or ("race_id" in session.keys() and session["race_id"] != race_id):
+        session["race_id"] = race_id
+        #nämä popataan pois VAIN, jos race vaihtuu
+        session.pop("set_id", None)
+        session.pop("team_name", None)
+    print(session)
+    #haetaan ko. kisan sarjat
+    sql = """SELECT sarjanimi FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarjanimi"""
+    cur = con.cursor()
+    cur.execute(sql,(race_id,))
     sets = cur.fetchall()
     return render_template("admin_sets.xhtml", sets=sets, race=race)
 
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
-    #TODO: voisiko näitä selectejä yhdistää?
+
+    #TODO: voisiko näitä sql-selectejä yhdistää? 3-tasolla vaaditaan liitoskyselyjä.
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
@@ -407,12 +420,17 @@ def teams(race, set):
     cur.execute(sql,(race_name, race_date+"%"))
     race_id = cur.fetchall()
     race_id = race_id[0][0]
-    session["race_id"] = race_id
     #haetaan sarja_id sarjan nimen ja k.id:n perusteella
     sql = """SELECT id FROM sarjat WHERE sarjanimi LIKE %s and kilpailu LIKE %s"""
     cur = con.cursor()
     cur.execute(sql,(set, race_id))
-    session["set_id"] = cur.fetchall()[0][0]
+    set_id = cur.fetchall()[0][0]
+
+    #jos kisa tai sarja on vaihtunut, poistetaan joukkue sessiosta
+    if ("set_id" in session.keys() and session["set_id"] != set_id) or ("race_id" in session.keys() and session["race_id"] != race_id):
+        session.pop("team_name", None)
+    session["race_id"] = race_id
+    session["set_id"] = set_id  
 
     sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi"""
     cur = con.cursor()
@@ -474,18 +492,182 @@ def teams(race, set):
                 con.rollback()
                 #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
 
-            
-            
-
     elif request.method == "GET" and request.args:
         form = adminAddTeamForm(request.args)
     else:
         form = adminAddTeamForm()
 
-    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race)
+    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
 
 @app.route('/admin/<race>/<team>', methods=['GET', 'POST'])
 @auth_admin
 def team(race, team):
-    return ("Hello", team)
+    print(session)
+    #TODO: sarjojen ja joukkueen tietojen haku kopioitu /modifysta, toimiiko samoin tässä?
+    race_list = race.split()
+    race_name = race_list[0]
+    race_date = race_list[1]
+    #haetaan ko. kisan sarjat valikkoon
+    sql = """SELECT s.sarjanimi FROM sarjat s
+            WHERE s.kilpailu IN (
+                SELECT k.id FROM kilpailut k 
+                WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
+            ORDER BY s.sarjanimi;"""
+    cur = con.cursor()
+    cur.execute(sql, (race_name, race_date+"%"))        
+    sarjat = cur.fetchall()
+    print("sarjat", sarjat)
+
+    #haetaan joukkueen tiedot valmiiksi lomakkeelle
+    sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
+            WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
+    cur = con.cursor()
+    cur.execute(sql, (team, session["race_id"]))
+    team_data = cur.fetchall()
+    print("team_data", team_data)
+    sarja = team_data[0][1]
+    print("sarja", sarja)
+    members = team_data[0][0]
+    members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
+    members_array = [x.strip() for x in members.split(",")]
+    race_id = team_data[0][2]    
+
+    class adminModifyTeamForm(PolyglotForm):
+        #sarjavalikon oikeat arvot syötetään myöhemmin
+        team = StringField("Joukkueen nimi", [validate_team])   
+        password = PasswordField("Salasana", []) 
+        #TODO: radiofieldiin haetaan kisan sarjat, joukkueen sarja valittuna
+        set = RadioField("Sarja", choices=(1,), validate_choice=False)
+        member1 = StringField("Jäsen 1", [validate_members])
+        member2 = StringField("Jäsen 2")
+        member3 = StringField("Jäsen 3")
+        member4 = StringField("Jäsen 4")
+        member5 = StringField("Jäsen 5")
+        remove = BooleanField("Poista joukkue")
+
+    #TODO: tähän copy-pastella lomakkeen täyttöä ja käyttöä /modify-puolelta
+    if request.method == "POST":
+        form = adminModifyTeamForm()
+        isValid = form.validate()
+        if isValid:
+            #tallennetaan joukkue tietokantaan
+            pass #väliaikaisesti
+    elif request.method == "GET" and request.args:
+        form = adminModifyTeamForm(request.args)
+    else:
+        form = adminModifyTeamForm() 
+
+    #tietokannasta haettujen sarjojen asetus lomakekenttään
+    form.set.choices = [(i[0], i[0]) for i in sarjat]
+
+    #oikean sarjan asetus valituksi
+    try:
+        form.set.data = request.values.get("set")
+        if not form.set.data:
+            form.set.data = sarja
+    except:
+        pass
+
+    try:
+        if request.method == "GET":
+            #TODO: tarvitseeko joukkuetta tallentaa sessioon?
+            #form.team.data = session["team_name"]
+            form.team.data = team
+        else:
+            form.team.data = request.values.get("team").strip()
+            if form.team.data == "":
+                form.team.data = form.team.data
+            elif not form.team.data:
+                #form.team.data = session["team_name"]
+                form.team.data = team
+    except:
+        #TODO: jotain
+        pass
+
+    try:
+        if request.method == "GET":
+            form.member1.data = members_array[0]
+        else: 
+            form.member1.data = request.values.get("member1").strip()
+            if form.member1.data == "":
+                form.member1.data = form.member1.data
+            elif not form.member1.data:
+                form.member1.data = members_array[0]
+    except:
+        form.member1.data = ""
+
+    try:
+        if request.method == "GET":
+            form.member2.data = members_array[1]
+        else:
+            form.member2.data = request.values.get("member2").strip()
+            if form.member2.data == "":
+                form.member2.data = form.member2.data
+            elif not form.member2.data:
+                form.member2.data = members_array[1]
+    except:
+        form.member2.data = ""
+
+    try:
+        if request.method == "GET":
+            form.member3.data = members_array[2]
+        else:
+            form.member3.data = request.values.get("member3").strip()
+            if form.member3.data == "":
+                form.member3.data = form.member3.data
+            elif not form.member3.data:
+                form.member3.data = members_array[2]
+    except:
+        form.member3.data = ""
+
+    try:
+        if request.method == "GET":
+            form.member4.data = members_array[3]
+        else:
+            form.member4.data = request.values.get("member4").strip()
+            if form.member4.data == "":
+                form.member4.data = form.member4.data
+            elif not form.member4.data:
+                form.member4.data = members_array[3]
+    except:
+        form.member4.data = ""
+
+    try:
+        if request.method == "GET":
+            form.member5.data = members_array[4]
+        else:
+            form.member5.data = request.values.get("member5").strip()
+            if form.member5.data == "":
+                form.member5.data = form.member5.data
+            elif not form.member5.data:
+                form.member5.data = members_array[4]
+    except:
+        form.member5.data = ""
+
+    
+
+    """def save_to_db(team, members, team_id, set_name):
+        sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
+        cur = con.cursor()
+        try:
+            cur.execute(sql, (session["race_id"], set_name, team, members, team_id))
+            con.commit()
+            session["team_name"] = team
+        except:
+            con.rollback()
+            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
+        return
+
+
+    
+
+    return render_template("modify.xhtml", form=form, team=team, sarjat=sarjat, sarja=sarja, members=members_array, race_name=session["race_name"], race_year=session["race_year"], start_time=session["start_time"], team_name=session["team_name"])"""
+
+
+
+
+
+
+    #TODO: template tarvitsee myös setin, jotta valikon linkki toimii
+    return render_template("admin_team.xhtml", form = form, team=team, race=race)
     #return render_template("admin_team.xhtml")

@@ -95,6 +95,25 @@ label {
         "jasenet . tallenna";
 }
 
+.admin-modify-form {
+    display: grid;
+    width: 70%;
+    grid-template-columns: 15% 10% 20%;
+    grid-template-rows: auto;
+    grid-gap: 1em;
+    grid-template-areas: 
+        "joukkueen-nimi . joukkueen-nimi-input"
+        "password . password-input"
+        "rb-set . rb-set-input"
+        "jasenet jasen1 jasen1-input"
+        "jasenet jasen2 jasen2-input"
+        "jasenet jasen3 jasen3-input"
+        "jasenet jasen4 jasen4-input"
+        "jasenet jasen5 jasen5-input"
+        "remove . remove-input"
+        "remove . tallenna";
+}
+
 .set {
     grid-area: set;
 }
@@ -104,6 +123,32 @@ label {
     width: 50px; 
     justify-self: end;
     margin-right: 1em;
+}
+
+.rb-set {
+    grid-area: rb-set;
+}
+
+.rb-set-input {
+    grid-area: rb-set-input;
+    justify-self: end;
+    margin: 0;
+}
+
+.rb-set-input li {
+    list-style: none;
+}
+
+.rb-set-input li label {
+    float: left;
+}
+
+.password {
+    grid-area: password;
+}
+
+.password-input {
+    grid-area: password-input;
 }
 
 .joukkueen-nimi {
@@ -199,6 +244,15 @@ label {
 .error-jasen5 {
     grid-column: 4 / 5;
     grid-row: 7 / 8;
+}
+
+.remove {
+    grid-area: remove;
+}
+
+.remove-input {
+    grid-area: remove-input;
+    justify-self: end;
 }
 
 .tallenna {
