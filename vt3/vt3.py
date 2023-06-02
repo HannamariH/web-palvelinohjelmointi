@@ -1,4 +1,4 @@
-from flask import Flask, session, redirect, url_for, escape, request, Response, render_template
+from flask import Flask, session, redirect, url_for, request, render_template
 import hashlib
 import io
 import json
@@ -22,7 +22,6 @@ try:
     pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="tietokantayhteydet",
                                                             pool_size=2,  # PythonAnywheren ilmaisen tunnuksen maksimi on kolme
                                                             **dbconfig)
-    con = pool.get_connection()    
 except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("Tunnus tai salasana on väärin")
@@ -57,20 +56,28 @@ def validate_team(form, field):
         raise ValidationError("Joukkueen nimi ei saa olla tyhjä")
     #jos lisätään uusi joukkue tai joukkueen nimeä on muokattu lomakkeella
     if not "team_name" in session.keys() or (field.data.lower() != session["team_name"].lower()):
-        sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
-        cur = con.cursor()
-        cur.execute(sql, (session["set_id"],))        
-        teams = cur.fetchall()
-        for team in teams:
-            if team[0].strip().lower() == field.data.strip().lower():
-                raise ValidationError("Sarjassa on jo samanniminen joukkue")
+        global pool
+        try:
+            con = pool.get_connection() 
+            try:
+                sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
+                cur = con.cursor()
+                cur.execute(sql, (session["set_id"],))        
+                teams = cur.fetchall()
+                for team in teams:
+                    if team[0].strip().lower() == field.data.strip().lower():
+                        raise ValidationError("Sarjassa on jo samanniminen joukkue")
+            except mysql.connector.errors.OperationalError:
+                print("tietokantayhteyttä ei saada", err)
+        finally:
+            con.close()
     return
 
 #tarkistaa, että joukkueelle syötetään vähintään kaksi jäsentä ja kaikilla jäsenillä on uniikki nimi
 def validate_members(form, field):
     members = get_members_from_form(form)
     if len(members) < 2:
-        raise ValidationError("Joukkueella oltava vähintään 2 jäsentä")
+        raise ValidationError("Joukkueella on oltava vähintään 2 jäsentä")
     if len(members) != len(set(map(str.lower, members))):
         raise ValidationError("Joukkueen jäsenten nimien on oltava uniikkeja")
 
@@ -84,6 +91,36 @@ def get_members_from_form(form):
             members.remove('')
     return members
 
+def save_to_db(team, members, team_id, set_name, password=None):
+        if password is not None:
+            sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s, salasana = %s WHERE id = %s"
+        else:
+            sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
+        
+        global pool
+        try:
+            con = pool.get_connection() 
+            try: 
+                cur = con.cursor()
+                try:
+                    if password is not None:
+                        cur.execute(sql, (session["race_id"], set_name, team, members, password, team_id))
+                    else:
+                        cur.execute(sql, (session["race_id"], set_name, team, members, team_id))
+                    con.commit()
+                    session["team_name"] = team
+                except:
+                    con.rollback()
+                    print("ei voitu tallentaa kantaan")
+                    #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
+            except mysql.connector.errors.OperationalError:
+                print("tietokantayhteyttä ei saada", err)
+        finally:
+            con.close()
+        return
+
+#------------ reitit alkavat -------------------
+
 @app.route('/', methods=['GET'])
 def redir():
     return redirect(url_for("signin"))
@@ -94,11 +131,19 @@ def signin():
     try:          
         session.clear()
         # haetaan kilpailut valikkoon
-        sql = """SELECT kisanimi, alkuaika FROM kilpailut"""
-        cur = con.cursor()
-        #cur = con.cursor(buffered=True, dictionary=True)
-        cur.execute(sql)
-        races_init = cur.fetchall()
+        global pool
+        try:
+            con = pool.get_connection() 
+            try:
+                sql = """SELECT kisanimi, alkuaika FROM kilpailut""" 
+                cur = con.cursor()
+                cur.execute(sql)        
+                races_init = cur.fetchall()
+            except mysql.connector.errors.OperationalError:
+                print("tietokantayhteyttä ei saada", err)
+        finally:
+            con.close()
+    
         races = ["--Valitse kilpailu--"]
         for i in races_init:
             race = i[0]
@@ -116,15 +161,23 @@ def signin():
             race_name = ""
             race_year = ""
         # haetaan annettujen joukkueen ja kilpailun tiedot
-        sql = """SELECT j.joukkuenimi, j.salasana, j.id, j.sarja, k.kisanimi, k.alkuaika, k.id FROM joukkueet j, sarjat s, kilpailut k
-                WHERE lower(j.joukkuenimi) = %s
-                AND k.kisanimi = %s
-                AND k.alkuaika like %s
-                AND j.sarja = s.id
-                AND s.kilpailu = k.id"""
-        cur = con.cursor()
-        cur.execute(sql, (username, race_name, race_year+"%"))        
-        team = cur.fetchall()
+        try:
+            con = pool.get_connection() 
+            try:
+                sql = """SELECT j.joukkuenimi, j.salasana, j.id, j.sarja, k.kisanimi, k.alkuaika, k.id FROM joukkueet j, sarjat s, kilpailut k
+                    WHERE lower(j.joukkuenimi) = %s
+                    AND k.kisanimi = %s
+                    AND k.alkuaika like %s
+                    AND j.sarja = s.id
+                    AND s.kilpailu = k.id"""
+                cur = con.cursor()
+                cur.execute(sql, (username, race_name, race_year+"%"))        
+                team = cur.fetchall()
+            except mysql.connector.errors.OperationalError:
+                print("tietokantayhteyttä ei saada", err)
+        finally:
+            con.close()
+
         if team == []:
             session.clear()
             klikattu = request.form.get("kirjaudu", "")           
@@ -156,11 +209,7 @@ def signin():
         #TODO pass????
         session.clear()
         return render_template('login.xhtml', races=races, login_error=login_error)
-    #finally:
-    #    con.close()
 
-#TODO: pitäiskö olla molemmat metodit sallittu? 
-# redirect(url_for) tekee aina(?) GET-pyynnön
 @app.route('/teams', methods=['GET'])
 @auth
 def team_list():
@@ -168,14 +217,23 @@ def team_list():
     race_name = session["race_name"]
     race_year = session["race_year"]
 
-    sql = """SELECT s.sarjanimi, j.joukkuenimi, j.jasenet FROM kilpailut k, joukkueet j, sarjat s 
-        WHERE k.alkuaika LIKE %s AND k.kisanimi LIKE %s
-        AND j.sarja = s.id
-        AND s.kilpailu = k.id
-        ORDER BY s.sarjanimi, j.joukkuenimi;"""
-    cur = con.cursor()
-    cur.execute(sql, (race_year+"%", race_name))        
-    teams = cur.fetchall()
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            sql = """SELECT s.sarjanimi, j.joukkuenimi, j.jasenet FROM kilpailut k, joukkueet j, sarjat s 
+                WHERE k.alkuaika LIKE %s AND k.kisanimi LIKE %s
+                AND j.sarja = s.id
+                AND s.kilpailu = k.id
+                ORDER BY s.sarjanimi, j.joukkuenimi COLLATE utf8mb4_swedish_ci;"""
+            cur = con.cursor()
+            cur.execute(sql, (race_year+"%", race_name))        
+            teams = cur.fetchall()
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()
+
     #tehdään merkkijonomuotoisesta jäsenkentästä järjestetty lista
     teams_list = []
     for team in teams:
@@ -192,39 +250,35 @@ def team_list():
 @app.route('/modify', methods=['GET', 'POST'])
 @auth
 def modify_team():
-    #haetaan ko. kisan sarjat valikkoon
-    sql = """SELECT s.sarjanimi FROM sarjat s
-            WHERE s.kilpailu IN (
+    
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            #haetaan ko. kisan sarjat valikkoon
+            sql = """SELECT s.sarjanimi FROM sarjat s
+                WHERE s.kilpailu IN (
                 SELECT k.id FROM kilpailut k 
                 WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
-            ORDER BY s.sarjanimi;"""
-    cur = con.cursor()
-    cur.execute(sql, (session["race_name"], session["race_year"]+"%"))        
-    sarjat = cur.fetchall()
+                ORDER BY s.sarjanimi COLLATE utf8mb4_swedish_ci;"""
+            cur = con.cursor()
+            cur.execute(sql, (session["race_name"], session["race_year"]+"%"))        
+            sarjat = cur.fetchall()
 
-    #haetaan joukkueen tiedot valmiiksi lomakkeelle
-    sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
-            WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
-    cur = con.cursor()
-    cur.execute(sql, (session["team_name"], session["race_id"]))
-    team = cur.fetchall()
-    sarja = team[0][1]
-    members = team[0][0]
-    members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
-    members_array = [x.strip() for x in members.split(",")]
-    race_id = team[0][2]    
-
-    def save_to_db(team, members, team_id, set_name):
-        sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
-        cur = con.cursor()
-        try:
-            cur.execute(sql, (session["race_id"], set_name, team, members, team_id))
-            con.commit()
-            session["team_name"] = team
-        except:
-            con.rollback()
-            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
-        return
+            #haetaan joukkueen tiedot valmiiksi lomakkeelle
+            sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
+                    WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
+            cur = con.cursor()
+            cur.execute(sql, (session["team_name"], session["race_id"]))
+            team = cur.fetchall()
+            sarja = team[0][1]
+            members = team[0][0]
+            members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
+            members_array = [x.strip() for x in members.split(",")]
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()        
             
     class modifyTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
@@ -362,15 +416,23 @@ def login_admin():
     except:
         return render_template('admin_login.xhtml')
 
-@app.route('/admin/races', methods=['GET', 'POST'])
+@app.route('/admin/races', methods=['GET'])
 @auth_admin
 def races():
-    print(session)
     #haetaan tietokannasta joukkuelistaus aikajärjestyksessä
-    sql = """SELECT kisanimi, alkuaika FROM kilpailut ORDER BY alkuaika;"""
-    cur = con.cursor()
-    cur.execute(sql,)
-    races = cur.fetchall()
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            sql = """SELECT kisanimi, alkuaika FROM kilpailut ORDER BY alkuaika;"""
+            cur = con.cursor()
+            cur.execute(sql,)
+            races = cur.fetchall()
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()
+
     #poistetaan alkuajoista kellonaika, luodaan enkoodattu url-parametri
     races_with_dates = []
     for race in races:
@@ -380,63 +442,95 @@ def races():
     return render_template("admin_races.xhtml", races=races_with_dates)
 
 #näyttää valitun kilpailut sarjat
-@app.route('/admin/<race>/sets', methods=['GET', 'POST'])
+@app.route('/admin/<race>/sets', methods=['GET'])
 @auth_admin
 def sets(race):
     #erotetaan toisistaan kisan nimi ja alkuaika
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
-    #haetaan k.id, joka tallennetaan session["race_id"]:hen
-    sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
-    cur = con.cursor()
-    cur.execute(sql,(race_name, race_date+"%"))
-    race_id = cur.fetchall()[0][0]
-    #race_id sessioon, jos se muuttui
-    print("race_id", race_id)
-    if not "race_id" in session.keys() or ("race_id" in session.keys() and session["race_id"] != race_id):
-        session["race_id"] = race_id
-        #nämä popataan pois VAIN, jos race vaihtuu
-        session.pop("set_id", None)
-        session.pop("team_name", None)
-    print(session)
-    #haetaan ko. kisan sarjat
-    sql = """SELECT sarjanimi FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarjanimi"""
-    cur = con.cursor()
-    cur.execute(sql,(race_id,))
-    sets = cur.fetchall()
-    return render_template("admin_sets.xhtml", sets=sets, race=race)
+
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            #haetaan k.id, joka tallennetaan session["race_id"]:hen
+            sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
+            cur = con.cursor()
+            cur.execute(sql,(race_name, race_date+"%"))
+            race_id = cur.fetchall()[0][0]
+            #race_id sessioon, jos se muuttui
+            if not "race_id" in session.keys() or ("race_id" in session.keys() and session["race_id"] != race_id):
+                session["race_id"] = race_id
+                #nämä popataan pois VAIN, jos race vaihtuu
+                session.pop("set_id", None)
+                session.pop("set_name", None)
+                session.pop("team_name", None)
+            #haetaan ko. kisan sarjat
+            sql = """SELECT sarjanimi FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarjanimi COLLATE utf8mb4_swedish_ci"""
+            cur = con.cursor()
+            cur.execute(sql,(race_id,))
+            sets = cur.fetchall()
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()
+    
+    team = None
+    if "team_name" in session.keys():
+        team = session["team_name"]
+    set = None
+    if "set_name" in session.keys():
+        set = session["set_name"]
+    return render_template("admin_sets.xhtml", sets=sets, race=race, team=team, set=set)
 
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
-
     #TODO: voisiko näitä sql-selectejä yhdistää? 3-tasolla vaaditaan liitoskyselyjä.
-    race_list = race.split()
-    race_name = race_list[0]
-    race_date = race_list[1]
-    sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
-    cur = con.cursor()
-    cur.execute(sql,(race_name, race_date+"%"))
-    race_id = cur.fetchall()
-    race_id = race_id[0][0]
-    #haetaan sarja_id sarjan nimen ja k.id:n perusteella
-    sql = """SELECT id FROM sarjat WHERE sarjanimi LIKE %s and kilpailu LIKE %s"""
-    cur = con.cursor()
-    cur.execute(sql,(set, race_id))
-    set_id = cur.fetchall()[0][0]
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            #haetaan kilpailun id
+            race_list = race.split()
+            race_name = race_list[0]
+            race_date = race_list[1]
+            sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
+            cur = con.cursor()
+            cur.execute(sql,(race_name, race_date+"%"))
+            race_id = cur.fetchall()
+            race_id = race_id[0][0]
+            #haetaan sarja_id sarjan nimen ja k.id:n perusteella
+            sql = """SELECT id FROM sarjat WHERE sarjanimi LIKE %s and kilpailu LIKE %s"""
+            cur = con.cursor()
+            cur.execute(sql,(set, race_id))
+            set_id = cur.fetchall()[0][0]
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()
 
     #jos kisa tai sarja on vaihtunut, poistetaan joukkue sessiosta
     if ("set_id" in session.keys() and session["set_id"] != set_id) or ("race_id" in session.keys() and session["race_id"] != race_id):
+        print("poistetaan joukkue sessiosta, saisko tehdä niin?")
         session.pop("team_name", None)
     session["race_id"] = race_id
     session["set_id"] = set_id  
+    session["set_name"] = set
 
-    sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi"""
-    cur = con.cursor()
-    cur.execute(sql,(race_id, set))
-    teams = cur.fetchall()
-    teams = [team[0] for team in teams]     
+    try:
+        con = pool.get_connection() 
+        try:
+            sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi COLLATE utf8mb4_swedish_ci"""
+            cur = con.cursor()
+            cur.execute(sql,(race_id, set))
+            teams = cur.fetchall()
+            teams = [team[0] for team in teams] 
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()   
 
     #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
 
@@ -457,76 +551,94 @@ def teams(race, set):
             #tallennetaan joukkue tietokantaan
             team = request.values.get("team").strip()
             members = str(get_members_from_form(form))
-            sql = "INSERT INTO joukkueet (joukkuenimi, sarja, jasenet) VALUES (%s, %s, %s)"
-            cur = con.cursor()
             try:
-                cur.execute(sql, (team, session["set_id"], members))
-                con.commit()
-                session["team_name"] = team 
-
-                #salasanan lisäys kantaan juuri lisätylle joukkueelle
+                con = pool.get_connection() 
                 try:
-                    password = request.values.get("password").strip()
-                    if password == "":
-                        password = "ties4080"
-                except:
-                    password = "ties4080"
-                team_id = cur.lastrowid
-                m = hashlib.sha512()
-                m.update(str(team_id).encode("UTF-8"))
-                m.update(password.encode("UTF-8"))  
-                password = m.hexdigest()
-                sql = "UPDATE joukkueet SET salasana = %s WHERE id = %s"
-                cur = con.cursor()
-                try:
-                    cur.execute(sql, (password, team_id))
-                    con.commit()
-                    #lisätään uusi joukkue joukkuelistaan
-                    teams.append(team)
-                    teams.sort()
-                    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
-                except:
-                    con.rollback()
-                    #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
-            except:
-                con.rollback()
-                #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+                    sql = "INSERT INTO joukkueet (joukkuenimi, sarja, jasenet) VALUES (%s, %s, %s)"
+                    cur = con.cursor()
+                    try:
+                        cur.execute(sql, (team, session["set_id"], members))
+                        con.commit()
+                        session["team_name"] = team 
+                        #salasanan lisäys kantaan juuri lisätylle joukkueelle
+                        try:
+                            password = request.values.get("password").strip()
+                            if password == "":
+                                password = "ties4080"
+                        except:
+                            password = "ties4080"
+                        #TODO: tehtävänannossa SELECT LAST_INSERT_ID(), onko muutettava vai kelpaako?
+                        team_id = cur.lastrowid
+                        m = hashlib.sha512()
+                        m.update(str(team_id).encode("UTF-8"))
+                        m.update(password.encode("UTF-8"))  
+                        password = m.hexdigest()
+                        sql = "UPDATE joukkueet SET salasana = %s WHERE id = %s"
+                        cur = con.cursor()
+                        try:
+                            cur.execute(sql, (password, team_id))
+                            con.commit()
+                            #lisätään uusi joukkue joukkuelistaan
+                            teams.append(team)
+                            teams.sort()
+                            return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
+                        except:
+                            con.rollback()
+                            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+                    except:
+                        con.rollback()
+                        #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+                except mysql.connector.errors.OperationalError:
+                    print("tietokantayhteyttä ei saada", err)
+            finally:
+                con.close()
 
     elif request.method == "GET" and request.args:
         form = adminAddTeamForm(request.args)
     else:
         form = adminAddTeamForm()
 
-    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
+    team = None
+    if "team_name" in session.keys():
+        team = session["team_name"]
+
+    return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set, team=team)
 
 @app.route('/admin/<race>/<team>', methods=['GET', 'POST'])
 @auth_admin
 def team(race, team):
-    print(session)
-    #TODO: sarjojen ja joukkueen tietojen haku kopioitu /modifysta, toimiiko samoin tässä?
+    session["team_name"] = team
     race_list = race.split()
     race_name = race_list[0]
     race_date = race_list[1]
-    #haetaan ko. kisan sarjat valikkoon
-    sql = """SELECT s.sarjanimi FROM sarjat s
-            WHERE s.kilpailu IN (
-                SELECT k.id FROM kilpailut k 
-                WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
-            ORDER BY s.sarjanimi;"""
-    cur = con.cursor()
-    cur.execute(sql, (race_name, race_date+"%"))        
-    sarjat = cur.fetchall()
-    print("sarjat", sarjat)
 
-    #haetaan joukkueen tiedot valmiiksi lomakkeelle
-    sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
-            WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
-    cur = con.cursor()
-    cur.execute(sql, (team, session["race_id"]))
-    team_data = cur.fetchall()
-    print("team_data", team_data)
+    global pool
+    try:
+        con = pool.get_connection() 
+        try:
+            #haetaan ko. kisan sarjat radiopainikevalikkoon
+            sql = """SELECT s.sarjanimi FROM sarjat s
+                    WHERE s.kilpailu IN (
+                        SELECT k.id FROM kilpailut k 
+                        WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
+                    ORDER BY s.sarjanimi COLLATE utf8mb4_swedish_ci;"""
+            cur = con.cursor()
+            cur.execute(sql, (race_name, race_date+"%"))        
+            sarjat = cur.fetchall()
+
+            #haetaan joukkueen tiedot valmiiksi lomakkeelle
+            sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu, j.id FROM joukkueet j, sarjat s 
+                    WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
+            cur = con.cursor()
+            cur.execute(sql, (team, session["race_id"]))
+            team_data = cur.fetchall()
+        except mysql.connector.errors.OperationalError:
+            print("tietokantayhteyttä ei saada", err)
+    finally:
+        con.close()
+
+    session["team_id"] = team_data[0][3]
     sarja = team_data[0][1]
-    print("sarja", sarja)
     members = team_data[0][0]
     members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
     members_array = [x.strip() for x in members.split(",")]
@@ -534,9 +646,8 @@ def team(race, team):
 
     class adminModifyTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
-        team = StringField("Joukkueen nimi", [validate_team])   
+        team = StringField("Joukkueen nimi", [validate_team])
         password = PasswordField("Salasana", []) 
-        #TODO: radiofieldiin haetaan kisan sarjat, joukkueen sarja valittuna
         set = RadioField("Sarja", choices=(1,), validate_choice=False)
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
@@ -545,13 +656,55 @@ def team(race, team):
         member5 = StringField("Jäsen 5")
         remove = BooleanField("Poista joukkue")
 
-    #TODO: tähän copy-pastella lomakkeen täyttöä ja käyttöä /modify-puolelta
     if request.method == "POST":
-        form = adminModifyTeamForm()
-        isValid = form.validate()
-        if isValid:
-            #tallennetaan joukkue tietokantaan
-            pass #väliaikaisesti
+        #ensin mahdollinen poistaminen
+        if request.values.get("remove") == "y":
+            try:
+                con = pool.get_connection() 
+                #TODO: selvitä, onko joukkueella rastileimauksia
+                try:
+                    sql = """SELECT rasti FROM tupa JOIN joukkueet ON tupa.joukkue = joukkueet.id WHERE joukkueet.id = %s"""
+                    cur = con.cursor()
+                    cur.execute(sql, (session["team_id"],))
+                    cps = cur.fetchall()
+                except mysql.connector.errors.OperationalError:
+                    print("tietokantayhteyttä ei saada", err)
+
+                if len(cps) > 0:
+                    #TODO: SEURAAVAKSI!!! virheilmoitus: joukkuetta ei voi poistaa
+                    #admin_team.xhtml:ssä cannot_delete
+                    #css:ssä .error-remove, sille tarvitaan gridissä paikka
+                    cannot_delete = "Joukkuetta ei voida poistaa, koska sillä on rastileimauksia."
+                    form = adminModifyTeamForm()
+                    pass
+                    #return render_template("admin_team.xhtml", form=form, team=team, race=race, set=sarjat, cannot_delete=cannot_delete)
+                else:
+                    try:
+                        sql = """DELETE from JOUKKUEET where ID = %s"""
+                        cur = con.cursor()
+                        cur.execute(sql, (session["team_id"],))
+                        con.commit()
+                    except mysql.connector.errors.OperationalError:
+                        print("tietokantayhteyttä ei saada", err)
+            finally:
+                con.close()        
+            return redirect(url_for('teams', race=race, set=session["set_name"]))
+        #sitten joukkueen muokkaaminen
+        else:
+            form = adminModifyTeamForm()
+            isValid = form.validate()
+            if isValid:
+                members = str(get_members_from_form(form))
+                password = request.values.get("password")
+                #salasana tallennetaan kantaan vain, jos se on syötetty kenttään
+                if password:
+                    m = hashlib.sha512()
+                    m.update(str(session["team_id"]).encode("UTF-8"))
+                    m.update(password.encode("UTF-8"))  
+                    password = m.hexdigest()
+                    save_to_db(request.values.get("team").strip(), members, session["team_id"], request.values.get("set"), password)
+                else:
+                    save_to_db(request.values.get("team").strip(), members, session["team_id"], request.values.get("set"))
     elif request.method == "GET" and request.args:
         form = adminModifyTeamForm(request.args)
     else:
@@ -570,15 +723,12 @@ def team(race, team):
 
     try:
         if request.method == "GET":
-            #TODO: tarvitseeko joukkuetta tallentaa sessioon?
-            #form.team.data = session["team_name"]
             form.team.data = team
         else:
             form.team.data = request.values.get("team").strip()
             if form.team.data == "":
                 form.team.data = form.team.data
             elif not form.team.data:
-                #form.team.data = session["team_name"]
                 form.team.data = team
     except:
         #TODO: jotain
@@ -594,7 +744,7 @@ def team(race, team):
             elif not form.member1.data:
                 form.member1.data = members_array[0]
     except:
-        form.member1.data = ""
+        form.member1.data = "" 
 
     try:
         if request.method == "GET":
@@ -644,30 +794,4 @@ def team(race, team):
     except:
         form.member5.data = ""
 
-    
-
-    """def save_to_db(team, members, team_id, set_name):
-        sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
-        cur = con.cursor()
-        try:
-            cur.execute(sql, (session["race_id"], set_name, team, members, team_id))
-            con.commit()
-            session["team_name"] = team
-        except:
-            con.rollback()
-            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
-        return
-
-
-    
-
-    return render_template("modify.xhtml", form=form, team=team, sarjat=sarjat, sarja=sarja, members=members_array, race_name=session["race_name"], race_year=session["race_year"], start_time=session["start_time"], team_name=session["team_name"])"""
-
-
-
-
-
-
-    #TODO: template tarvitsee myös setin, jotta valikon linkki toimii
-    return render_template("admin_team.xhtml", form = form, team=team, race=race)
-    #return render_template("admin_team.xhtml")
+    return render_template("admin_team.xhtml", form=form, team=team, race=race, set=sarja)

@@ -42,6 +42,9 @@
                 <span class="error error-jasen5">{{ error|e }}</span> {% endfor %}
             {% endif %}
             {{form.remove.label(class_="remove")}} {{form.remove(class_="remove-input")}}
+            {#{% if cannot_delete %}
+                <span class="error error-remove">{{ cannot_delete }}</span>
+            {% endif %}#}
         <p class="tallenna">
             <input type="submit" name="muokkaa" value="Tallenna" />
         </p>

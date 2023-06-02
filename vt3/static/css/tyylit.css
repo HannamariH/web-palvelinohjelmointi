@@ -246,6 +246,10 @@ label {
     grid-row: 7 / 8;
 }
 
+.error-remove {
+    color: red;
+}
+
 .remove {
     grid-area: remove;
 }
