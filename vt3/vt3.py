@@ -284,6 +284,7 @@ def modify_team():
         #sarjavalikon oikeat arvot syötetään myöhemmin
         set = SelectField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
         team = StringField("Joukkueen nimi", [validate_team])   
+        password = PasswordField("Salasana", []) 
         member1 = StringField("Jäsen 1", [validate_members])
         member2 = StringField("Jäsen 2")
         member3 = StringField("Jäsen 3")
@@ -295,8 +296,16 @@ def modify_team():
         isValid = form.validate()
         if isValid:
             #kantaan tallennus
-            members = get_members_from_form(form)
-            save_to_db(request.values.get("team").strip(), str(members), session["team_id"], request.values.get("set"))
+            password = request.values.get("password")
+            #salasana tallennetaan kantaan vain, jos se on syötetty kenttään
+            if password:
+                m = hashlib.sha512()
+                m.update(str(session["team_id"]).encode("UTF-8"))
+                m.update(password.encode("UTF-8"))  
+                password = m.hexdigest()
+                save_to_db(request.values.get("team").strip(), str(members), session["team_id"], request.values.get("set"), password)
+            else:
+                save_to_db(request.values.get("team").strip(), str(members), session["team_id"], request.values.get("set"))
     elif request.method == "GET" and request.args:
         form = modifyTeamForm(request.args)
     else:

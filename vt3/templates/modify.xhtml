@@ -9,6 +9,7 @@
             {% for error in form.team.errors %}
                 <span class="error error-teamname">{{ error|e }}</span> {% endfor %}
             {% endif %}
+        {{form.password.label(class_="password")}} {{form.password(class_="password-input")}}
         {{form.set.label(class_="set")}} {{form.set(class_="set-input")}}
             {% if form.set.errors %}
                 {% for error in form.set.errors %}

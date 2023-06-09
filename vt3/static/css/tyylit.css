@@ -86,6 +86,7 @@ label {
     grid-gap: 1em;
     grid-template-areas: 
         "joukkueen-nimi . joukkueen-nimi-input"
+        "password . password-input"
         "set . set-input"
         "jasenet jasen1 jasen1-input"
         "jasenet jasen2 jasen2-input"
