@@ -487,25 +487,24 @@ def sets(race):
 @app.route('/admin/<race>/<set>/teams', methods=['GET', 'POST'])
 @auth_admin
 def teams(race, set):
-    #TODO: voisiko näitä sql-selectejä yhdistää? 3-tasolla vaaditaan liitoskyselyjä.
     global pool
     try:
         con = pool.get_connection() 
         try:
-            #haetaan kilpailun id
+            #haetaan kilpailun ja sarjan id:t
             race_list = race.split()
             race_name = race_list[0]
             race_date = race_list[1]
-            sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
+            sql = """SELECT s.id, k.id FROM sarjat s
+                JOIN kilpailut k ON s.kilpailu = k.id
+                WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s AND s.sarjanimi LIKE %s"""
             cur = con.cursor()
-            cur.execute(sql,(race_name, race_date+"%"))
-            race_id = cur.fetchall()
-            race_id = race_id[0][0]
-            #haetaan sarja_id sarjan nimen ja k.id:n perusteella
-            sql = """SELECT id FROM sarjat WHERE sarjanimi LIKE %s and kilpailu LIKE %s"""
-            cur = con.cursor()
-            cur.execute(sql,(set, race_id))
-            set_id = cur.fetchall()[0][0]
+            cur.execute(sql, (race_name, race_date+"%", set))
+            result = cur.fetchall()
+            print("result", result)
+            set_id = result[0][0]
+            race_id = result[0][1]
+
         except mysql.connector.errors.OperationalError:
             print("tietokantayhteyttä ei saada", err)
     finally:
@@ -522,7 +521,9 @@ def teams(race, set):
     try:
         con = pool.get_connection() 
         try:
-            sql = """SELECT joukkuenimi, sarja FROM joukkueet WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) ORDER BY joukkuenimi COLLATE utf8mb4_swedish_ci"""
+            sql = """SELECT joukkuenimi, sarja FROM joukkueet 
+                WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) 
+                ORDER BY joukkuenimi COLLATE utf8mb4_swedish_ci"""
             cur = con.cursor()
             cur.execute(sql,(race_id, set))
             teams = cur.fetchall()
