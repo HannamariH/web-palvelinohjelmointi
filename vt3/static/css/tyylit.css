@@ -223,31 +223,32 @@ label {
 
 .error-jasen1 {
     grid-column: 4 / 5;
-    grid-row: 3 / 4;
+    grid-row: 4 / 5;
 }
 
 .error-jasen2 {
     grid-column: 4 / 5;
-    grid-row: 4 / 5;
+    grid-row: 5 / 6;
 }
 
 .error-jasen3 {
     grid-column: 4 / 5;
-    grid-row: 5 / 6;
+    grid-row: 6 / 7;
 }
 
 .error-jasen4 {
     grid-column: 4 / 5;
-    grid-row: 6 / 7;
+    grid-row: 7 / 8;
 }
 
 .error-jasen5 {
     grid-column: 4 / 5;
-    grid-row: 7 / 8;
+    grid-row: 8 / 9;
 }
 
 .error-remove {
-    color: red;
+    grid-column: 4 / 5;
+    grid-row: 9 / 10;
 }
 
 .remove {

@@ -661,7 +661,7 @@ def team(race, team):
         if request.values.get("remove") == "y":
             try:
                 con = pool.get_connection() 
-                #TODO: selvitä, onko joukkueella rastileimauksia
+                #selvitetään, onko joukkueella rastileimauksia
                 try:
                     sql = """SELECT rasti FROM tupa JOIN joukkueet ON tupa.joukkue = joukkueet.id WHERE joukkueet.id = %s"""
                     cur = con.cursor()
@@ -671,13 +671,18 @@ def team(race, team):
                     print("tietokantayhteyttä ei saada", err)
 
                 if len(cps) > 0:
-                    #TODO: SEURAAVAKSI!!! virheilmoitus: joukkuetta ei voi poistaa
-                    #admin_team.xhtml:ssä cannot_delete
-                    #css:ssä .error-remove, sille tarvitaan gridissä paikka
                     cannot_delete = "Joukkuetta ei voida poistaa, koska sillä on rastileimauksia."
                     form = adminModifyTeamForm()
-                    pass
-                    #return render_template("admin_team.xhtml", form=form, team=team, race=race, set=sarjat, cannot_delete=cannot_delete)
+                    #tietokannasta haettujen sarjojen asetus lomakekenttään
+                    form.set.choices = [(i[0], i[0]) for i in sarjat]                
+                    #oikean sarjan asetus valituksi
+                    try:
+                        form.set.data = request.values.get("set")
+                        if not form.set.data:
+                            form.set.data = sarja
+                    except:
+                        pass
+                    return render_template("admin_team.xhtml", form=form, team=team, race=race, set=sarja, cannot_delete=cannot_delete)
                 else:
                     try:
                         sql = """DELETE from JOUKKUEET where ID = %s"""
