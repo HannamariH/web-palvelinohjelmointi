@@ -12,6 +12,7 @@ from wtforms import StringField, PasswordField, SelectField, RadioField, Boolean
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
+#TODO: csrf toimimaan!
 #csrf = CSRFProtect(app)
 app.secret_key = '7\xb9\x8b\xce\xff\x0feD/NA\xff\x818R\xc7\t\x00\xbcG\xf9S\xa0t'
 
@@ -60,7 +61,7 @@ def validate_team(form, field):
         try:
             con = pool.get_connection() 
             try:
-                sql = """SELECT joukkuenimi FROM joukkueet WHERE sarja = %s"""  
+                sql = """SELECT joukkue FROM joukkueet WHERE sarja = %s"""  
                 cur = con.cursor()
                 cur.execute(sql, (session["set_id"],))        
                 teams = cur.fetchall()
@@ -92,10 +93,11 @@ def get_members_from_form(form):
     return members
 
 def save_to_db(team, members, team_id, set_name, password=None):
+        print(team, members)
         if password is not None:
-            sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s, salasana = %s WHERE id = %s"
+            sql = "UPDATE joukkueet SET sarja = (SELECT sarjaid FROM sarjat WHERE kilpailu = %s AND sarja = %s), joukkue = %s, jasenet = %s, salasana = %s WHERE joukkueid = %s"
         else:
-            sql = "UPDATE joukkueet SET sarja = (SELECT id FROM sarjat WHERE kilpailu = %s AND sarjanimi = %s), joukkuenimi = %s, jasenet = %s WHERE id = %s"
+            sql = "UPDATE joukkueet SET sarja = (SELECT sarjaid FROM sarjat WHERE kilpailu = %s AND sarja = %s), joukkue = %s, jasenet = %s WHERE joukkueid = %s"
         
         global pool
         try:
@@ -135,7 +137,7 @@ def signin():
         try:
             con = pool.get_connection() 
             try:
-                sql = """SELECT kisanimi, alkuaika FROM kilpailut""" 
+                sql = """SELECT kisa, alkuaika FROM kilpailut ORDER BY kisa, alkuaika""" 
                 cur = con.cursor()
                 cur.execute(sql)        
                 races_init = cur.fetchall()
@@ -164,12 +166,12 @@ def signin():
         try:
             con = pool.get_connection() 
             try:
-                sql = """SELECT j.joukkuenimi, j.salasana, j.id, j.sarja, k.kisanimi, k.alkuaika, k.id FROM joukkueet j, sarjat s, kilpailut k
-                    WHERE lower(j.joukkuenimi) = %s
-                    AND k.kisanimi = %s
+                sql = """SELECT j.joukkue, j.salasana, j.joukkueid, j.sarja, k.kisa, k.alkuaika, k.kisaid FROM joukkueet j, sarjat s, kilpailut k
+                    WHERE lower(j.joukkue) = %s
+                    AND k.kisa = %s
                     AND k.alkuaika like %s
-                    AND j.sarja = s.id
-                    AND s.kilpailu = k.id"""
+                    AND j.sarja = s.sarjaid
+                    AND s.kilpailu = k.kisaid"""
                 cur = con.cursor()
                 cur.execute(sql, (username, race_name, race_year+"%"))        
                 team = cur.fetchall()
@@ -221,11 +223,11 @@ def team_list():
     try:
         con = pool.get_connection() 
         try:
-            sql = """SELECT s.sarjanimi, j.joukkuenimi, j.jasenet FROM kilpailut k, joukkueet j, sarjat s 
-                WHERE k.alkuaika LIKE %s AND k.kisanimi LIKE %s
-                AND j.sarja = s.id
-                AND s.kilpailu = k.id
-                ORDER BY s.sarjanimi, j.joukkuenimi COLLATE utf8mb4_swedish_ci;"""
+            sql = """SELECT s.sarja, j.joukkue, j.jasenet FROM kilpailut k, joukkueet j, sarjat s 
+                WHERE k.alkuaika LIKE %s AND k.kisa LIKE %s
+                AND j.sarja = s.sarjaid
+                AND s.kilpailu = k.kisaid
+                ORDER BY s.sarja, j.joukkue COLLATE utf8mb4_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (race_year+"%", race_name))        
             teams = cur.fetchall()
@@ -256,18 +258,18 @@ def modify_team():
         con = pool.get_connection() 
         try:
             #haetaan ko. kisan sarjat valikkoon
-            sql = """SELECT s.sarjanimi FROM sarjat s
+            sql = """SELECT s.sarja FROM sarjat s
                 WHERE s.kilpailu IN (
-                SELECT k.id FROM kilpailut k 
-                WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
-                ORDER BY s.sarjanimi COLLATE utf8mb4_swedish_ci;"""
+                SELECT k.kisaid FROM kilpailut k 
+                WHERE k.kisa LIKE %s AND k.alkuaika LIKE %s) 
+                ORDER BY s.sarja COLLATE utf8mb4_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (session["race_name"], session["race_year"]+"%"))        
             sarjat = cur.fetchall()
 
             #haetaan joukkueen tiedot valmiiksi lomakkeelle
-            sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu FROM joukkueet j, sarjat s 
-                    WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
+            sql = """SELECT j.jasenet, s.sarja, s.kilpailu FROM joukkueet j, sarjat s 
+                    WHERE j.sarja = s.sarjaid AND j.joukkue LIKE %s AND s.kilpailu = %s;"""
             cur = con.cursor()
             cur.execute(sql, (session["team_name"], session["race_id"]))
             team = cur.fetchall()
@@ -297,7 +299,9 @@ def modify_team():
         if isValid:
             #kantaan tallennus
             password = request.values.get("password")
+            members = str(get_members_from_form(form))
             #salasana tallennetaan kantaan vain, jos se on syötetty kenttään
+            print(members)
             if password:
                 m = hashlib.sha512()
                 m.update(str(session["team_id"]).encode("UTF-8"))
@@ -433,7 +437,7 @@ def races():
     try:
         con = pool.get_connection() 
         try:
-            sql = """SELECT kisanimi, alkuaika FROM kilpailut ORDER BY alkuaika;"""
+            sql = """SELECT kisa, alkuaika FROM kilpailut ORDER BY alkuaika;"""
             cur = con.cursor()
             cur.execute(sql,)
             races = cur.fetchall()
@@ -463,8 +467,8 @@ def sets(race):
     try:
         con = pool.get_connection() 
         try:
-            #haetaan k.id, joka tallennetaan session["race_id"]:hen
-            sql = """SELECT k.id FROM kilpailut k WHERE k.kisanimi LIKE %s and k.alkuaika LIKE %s"""
+            #haetaan k.kisaid, joka tallennetaan session["race_id"]:hen
+            sql = """SELECT k.kisaid FROM kilpailut k WHERE k.kisa LIKE %s and k.alkuaika LIKE %s"""
             cur = con.cursor()
             cur.execute(sql,(race_name, race_date+"%"))
             race_id = cur.fetchall()[0][0]
@@ -476,7 +480,7 @@ def sets(race):
                 session.pop("set_name", None)
                 session.pop("team_name", None)
             #haetaan ko. kisan sarjat
-            sql = """SELECT sarjanimi FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarjanimi COLLATE utf8mb4_swedish_ci"""
+            sql = """SELECT sarja FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarja COLLATE utf8mb4_swedish_ci"""
             cur = con.cursor()
             cur.execute(sql,(race_id,))
             sets = cur.fetchall()
@@ -504,13 +508,12 @@ def teams(race, set):
             race_list = race.split()
             race_name = race_list[0]
             race_date = race_list[1]
-            sql = """SELECT s.id, k.id FROM sarjat s
-                JOIN kilpailut k ON s.kilpailu = k.id
-                WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s AND s.sarjanimi LIKE %s"""
+            sql = """SELECT s.sarjaid, k.kisaid FROM sarjat s
+                JOIN kilpailut k ON s.kilpailu = k.kisaid
+                WHERE k.kisa LIKE %s AND k.alkuaika LIKE %s AND s.sarja LIKE %s"""
             cur = con.cursor()
             cur.execute(sql, (race_name, race_date+"%", set))
             result = cur.fetchall()
-            print("result", result)
             set_id = result[0][0]
             race_id = result[0][1]
 
@@ -530,9 +533,9 @@ def teams(race, set):
     try:
         con = pool.get_connection() 
         try:
-            sql = """SELECT joukkuenimi, sarja FROM joukkueet 
-                WHERE sarja IN (SELECT id FROM sarjat WHERE kilpailu = %s and sarjanimi = %s) 
-                ORDER BY joukkuenimi COLLATE utf8mb4_swedish_ci"""
+            sql = """SELECT joukkue, sarja FROM joukkueet 
+                WHERE sarja IN (SELECT sarjaid FROM sarjat WHERE kilpailu = %s and sarja = %s) 
+                ORDER BY joukkue COLLATE utf8mb4_swedish_ci"""
             cur = con.cursor()
             cur.execute(sql,(race_id, set))
             teams = cur.fetchall()
@@ -564,7 +567,7 @@ def teams(race, set):
             try:
                 con = pool.get_connection() 
                 try:
-                    sql = "INSERT INTO joukkueet (joukkuenimi, sarja, jasenet) VALUES (%s, %s, %s)"
+                    sql = "INSERT INTO joukkueet (joukkue, sarja, jasenet) VALUES (%s, %s, %s)"
                     cur = con.cursor()
                     try:
                         cur.execute(sql, (team, session["set_id"], members))
@@ -583,7 +586,7 @@ def teams(race, set):
                         m.update(str(team_id).encode("UTF-8"))
                         m.update(password.encode("UTF-8"))  
                         password = m.hexdigest()
-                        sql = "UPDATE joukkueet SET salasana = %s WHERE id = %s"
+                        sql = "UPDATE joukkueet SET salasana = %s WHERE joukkueid = %s"
                         cur = con.cursor()
                         try:
                             cur.execute(sql, (password, team_id))
@@ -627,18 +630,18 @@ def team(race, team):
         con = pool.get_connection() 
         try:
             #haetaan ko. kisan sarjat radiopainikevalikkoon
-            sql = """SELECT s.sarjanimi FROM sarjat s
+            sql = """SELECT s.sarja FROM sarjat s
                     WHERE s.kilpailu IN (
-                        SELECT k.id FROM kilpailut k 
-                        WHERE k.kisanimi LIKE %s AND k.alkuaika LIKE %s) 
-                    ORDER BY s.sarjanimi COLLATE utf8mb4_swedish_ci;"""
+                        SELECT k.kisaid FROM kilpailut k 
+                        WHERE k.kisa LIKE %s AND k.alkuaika LIKE %s) 
+                    ORDER BY s.sarja COLLATE utf8mb4_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (race_name, race_date+"%"))        
             sarjat = cur.fetchall()
 
             #haetaan joukkueen tiedot valmiiksi lomakkeelle
-            sql = """SELECT j.jasenet, s.sarjanimi, s.kilpailu, j.id FROM joukkueet j, sarjat s 
-                    WHERE j.sarja = s.id AND j.joukkuenimi LIKE %s AND s.kilpailu = %s;"""
+            sql = """SELECT j.jasenet, s.sarja, s.kilpailu, j.joukkueid FROM joukkueet j, sarjat s 
+                    WHERE j.sarja = s.sarjaid AND j.joukkue LIKE %s AND s.kilpailu = %s;"""
             cur = con.cursor()
             cur.execute(sql, (team, session["race_id"]))
             team_data = cur.fetchall()
@@ -673,7 +676,7 @@ def team(race, team):
                 con = pool.get_connection() 
                 #selvitetään, onko joukkueella rastileimauksia
                 try:
-                    sql = """SELECT rasti FROM tupa JOIN joukkueet ON tupa.joukkue = joukkueet.id WHERE joukkueet.id = %s"""
+                    sql = """SELECT rasti FROM tupa JOIN joukkueet ON tupa.joukkue = joukkueet.joukkueid WHERE joukkueet.joukkueid = %s"""
                     cur = con.cursor()
                     cur.execute(sql, (session["team_id"],))
                     cps = cur.fetchall()
@@ -695,10 +698,13 @@ def team(race, team):
                     return render_template("admin_team.xhtml", form=form, team=team, race=race, set=sarja, cannot_delete=cannot_delete)
                 else:
                     try:
-                        sql = """DELETE from JOUKKUEET where ID = %s"""
+                        sql = """DELETE FROM joukkueet WHERE joukkueid = %s"""
                         cur = con.cursor()
                         cur.execute(sql, (session["team_id"],))
                         con.commit()
+                        #joukkueen tiedot pois sessiosta
+                        session.pop("team_id", None)
+                        session.pop("team_name", None)
                     except mysql.connector.errors.OperationalError:
                         print("tietokantayhteyttä ei saada", err)
             finally:
