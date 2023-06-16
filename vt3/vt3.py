@@ -8,12 +8,9 @@ import mysql.connector
 import mysql.connector.pooling
 from mysql.connector import errorcode
 from polyglot import PolyglotForm
-from wtforms import StringField, PasswordField, SelectField, RadioField, BooleanField, validators, ValidationError
-from flask_wtf.csrf import CSRFProtect
+from wtforms import StringField, PasswordField, SelectField, RadioField, BooleanField, ValidationError
 
 app = Flask(__name__)
-#TODO: csrf toimimaan!
-#csrf = CSRFProtect(app)
 app.secret_key = '7\xb9\x8b\xce\xff\x0feD/NA\xff\x818R\xc7\t\x00\xbcG\xf9S\xa0t'
 
 file = io.open("dbconfig.json", encoding="UTF-8")
@@ -30,9 +27,6 @@ except mysql.connector.Error as err:
             print("Tietokantaa ei löydy")
         else:
             print(err)
-
-#TODO: tarkista, että tietokantayhteys tulee suljettua aina lopuksi!
-#miten tehdään, kun eri reitit käyttää samaa yhteyttä? vain logout-reittiin con.close()?
 
 def auth(f):
     @wraps(f)
@@ -113,8 +107,7 @@ def save_to_db(team, members, team_id, set_name, password=None):
                     session["team_name"] = team
                 except:
                     con.rollback()
-                    print("ei voitu tallentaa kantaan")
-                    #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut
+                    return("tietokantaan tallennus ei onnistunut")
             except mysql.connector.errors.OperationalError:
                 print("tietokantayhteyttä ei saada", err)
         finally:
@@ -208,7 +201,6 @@ def signin():
             session.clear()
             return render_template('login.xhtml', races=races, login_error=login_error)
     except:
-        #TODO pass????
         session.clear()
         return render_template('login.xhtml', races=races, login_error=login_error)
 
@@ -284,7 +276,7 @@ def modify_team():
             
     class modifyTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
-        set = SelectField("Sarja", choices=(1,), coerce=str, validate_choice=False) #TODO: onko coerce tarpeen??
+        set = SelectField("Sarja", choices=(1,), validate_choice=False)
         team = StringField("Joukkueen nimi", [validate_team])   
         password = PasswordField("Salasana", []) 
         member1 = StringField("Jäsen 1", [validate_members])
@@ -328,7 +320,6 @@ def modify_team():
             elif not form.team.data:
                 form.team.data = session["team_name"]
     except:
-        #TODO: jotain
         pass
 
     try:
@@ -545,8 +536,6 @@ def teams(race, set):
     finally:
         con.close()   
 
-    #TODO: pitäiskö tiimien nimet (ja kilpailut taas) urlenkoodata??
-
     class adminAddTeamForm(PolyglotForm):
         #sarjavalikon oikeat arvot syötetään myöhemmin
         team = StringField("Joukkueen nimi", [validate_team])   
@@ -580,7 +569,6 @@ def teams(race, set):
                                 password = "ties4080"
                         except:
                             password = "ties4080"
-                        #TODO: tehtävänannossa SELECT LAST_INSERT_ID(), onko muutettava vai kelpaako?
                         team_id = cur.lastrowid
                         m = hashlib.sha512()
                         m.update(str(team_id).encode("UTF-8"))
@@ -597,10 +585,10 @@ def teams(race, set):
                             return render_template("admin_teams.xhtml", form=form, teams=teams, race=race, set=set)
                         except:
                             con.rollback()
-                            #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+                            return("tietokantaan tallennus ei onnistunut")
                     except:
                         con.rollback()
-                        #TODO: ilmoitus, ettei tietokantaan tallennus onnistunut?
+                        return("tietokantaan tallennus ei onnistunut")
                 except mysql.connector.errors.OperationalError:
                     print("tietokantayhteyttä ei saada", err)
             finally:
@@ -752,7 +740,6 @@ def team(race, team):
             elif not form.team.data:
                 form.team.data = team
     except:
-        #TODO: jotain
         pass
 
     try:
