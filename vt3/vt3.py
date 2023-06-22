@@ -87,7 +87,6 @@ def get_members_from_form(form):
     return members
 
 def save_to_db(team, members, team_id, set_name, password=None):
-        print(team, members)
         if password is not None:
             sql = "UPDATE joukkueet SET sarja = (SELECT sarjaid FROM sarjat WHERE kilpailu = %s AND sarja = %s), joukkue = %s, jasenet = %s, salasana = %s WHERE joukkueid = %s"
         else:
@@ -293,7 +292,6 @@ def modify_team():
             password = request.values.get("password")
             members = str(get_members_from_form(form))
             #salasana tallennetaan kantaan vain, jos se on syötetty kenttään
-            print(members)
             if password:
                 m = hashlib.sha512()
                 m.update(str(session["team_id"]).encode("UTF-8"))
@@ -515,7 +513,6 @@ def teams(race, set):
 
     #jos kisa tai sarja on vaihtunut, poistetaan joukkue sessiosta
     if ("set_id" in session.keys() and session["set_id"] != set_id) or ("race_id" in session.keys() and session["race_id"] != race_id):
-        print("poistetaan joukkue sessiosta, saisko tehdä niin?")
         session.pop("team_name", None)
     session["race_id"] = race_id
     session["set_id"] = set_id  
