@@ -62,7 +62,7 @@ def validate_team(form, field):
                 for team in teams:
                     if team[0].strip().lower() == field.data.strip().lower():
                         raise ValidationError("Sarjassa on jo samanniminen joukkue")
-            except mysql.connector.errors.OperationalError:
+            except mysql.connector.errors.OperationalError as err:
                 print("tietokantayhteyttä ei saada", err)
         finally:
             con.close()
@@ -108,7 +108,7 @@ def save_to_db(team, members, team_id, set_name, password=None):
                 except:
                     con.rollback()
                     return("tietokantaan tallennus ei onnistunut")
-            except mysql.connector.errors.OperationalError:
+            except mysql.connector.errors.OperationalError as err:
                 print("tietokantayhteyttä ei saada", err)
         finally:
             con.close()
@@ -134,7 +134,7 @@ def signin():
                 cur = con.cursor()
                 cur.execute(sql)        
                 races_init = cur.fetchall()
-            except mysql.connector.errors.OperationalError:
+            except mysql.connector.errors.OperationalError as err:
                 print("tietokantayhteyttä ei saada", err)
         finally:
             con.close()
@@ -168,7 +168,7 @@ def signin():
                 cur = con.cursor()
                 cur.execute(sql, (username, race_name, race_year+"%"))        
                 team = cur.fetchall()
-            except mysql.connector.errors.OperationalError:
+            except mysql.connector.errors.OperationalError as err:
                 print("tietokantayhteyttä ei saada", err)
         finally:
             con.close()
@@ -223,7 +223,7 @@ def team_list():
             cur = con.cursor()
             cur.execute(sql, (race_year+"%", race_name))        
             teams = cur.fetchall()
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()
@@ -269,7 +269,7 @@ def modify_team():
             members = team[0][0]
             members = members.replace("[","").replace("]","").replace('"',"").replace("'","")
             members_array = [x.strip() for x in members.split(",")]
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()        
@@ -432,7 +432,7 @@ def races():
             cur = con.cursor()
             cur.execute(sql,)
             races = cur.fetchall()
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()
@@ -475,7 +475,7 @@ def sets(race):
             cur = con.cursor()
             cur.execute(sql,(race_id,))
             sets = cur.fetchall()
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()
@@ -508,7 +508,7 @@ def teams(race, set):
             set_id = result[0][0]
             race_id = result[0][1]
 
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()
@@ -531,7 +531,7 @@ def teams(race, set):
             cur.execute(sql,(race_id, set))
             teams = cur.fetchall()
             teams = [team[0] for team in teams] 
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()   
@@ -589,7 +589,7 @@ def teams(race, set):
                     except:
                         con.rollback()
                         return("tietokantaan tallennus ei onnistunut")
-                except mysql.connector.errors.OperationalError:
+                except mysql.connector.errors.OperationalError as err:
                     print("tietokantayhteyttä ei saada", err)
             finally:
                 con.close()
@@ -633,7 +633,7 @@ def team(race, team):
             cur = con.cursor()
             cur.execute(sql, (team, session["race_id"]))
             team_data = cur.fetchall()
-        except mysql.connector.errors.OperationalError:
+        except mysql.connector.errors.OperationalError as err:
             print("tietokantayhteyttä ei saada", err)
     finally:
         con.close()
@@ -668,7 +668,7 @@ def team(race, team):
                     cur = con.cursor()
                     cur.execute(sql, (session["team_id"],))
                     cps = cur.fetchall()
-                except mysql.connector.errors.OperationalError:
+                except mysql.connector.errors.OperationalError as err:
                     print("tietokantayhteyttä ei saada", err)
 
                 if len(cps) > 0:
@@ -693,7 +693,7 @@ def team(race, team):
                         #joukkueen tiedot pois sessiosta
                         session.pop("team_id", None)
                         session.pop("team_name", None)
-                    except mysql.connector.errors.OperationalError:
+                    except mysql.connector.errors.OperationalError as err:
                         print("tietokantayhteyttä ei saada", err)
             finally:
                 con.close()        
