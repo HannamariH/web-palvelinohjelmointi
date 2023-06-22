@@ -219,7 +219,7 @@ def team_list():
                 WHERE k.alkuaika LIKE %s AND k.kisa LIKE %s
                 AND j.sarja = s.sarjaid
                 AND s.kilpailu = k.kisaid
-                ORDER BY s.sarja, j.joukkue COLLATE utf8mb4_swedish_ci;"""
+                ORDER BY s.sarja, j.joukkue COLLATE utf8_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (race_year+"%", race_name))        
             teams = cur.fetchall()
@@ -254,7 +254,7 @@ def modify_team():
                 WHERE s.kilpailu IN (
                 SELECT k.kisaid FROM kilpailut k 
                 WHERE k.kisa LIKE %s AND k.alkuaika LIKE %s) 
-                ORDER BY s.sarja COLLATE utf8mb4_swedish_ci;"""
+                ORDER BY s.sarja COLLATE utf8_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (session["race_name"], session["race_year"]+"%"))        
             sarjat = cur.fetchall()
@@ -471,7 +471,7 @@ def sets(race):
                 session.pop("set_name", None)
                 session.pop("team_name", None)
             #haetaan ko. kisan sarjat
-            sql = """SELECT sarja FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarja COLLATE utf8mb4_swedish_ci"""
+            sql = """SELECT sarja FROM sarjat WHERE kilpailu LIKE %s ORDER BY sarja COLLATE utf8_swedish_ci"""
             cur = con.cursor()
             cur.execute(sql,(race_id,))
             sets = cur.fetchall()
@@ -526,7 +526,7 @@ def teams(race, set):
         try:
             sql = """SELECT joukkue, sarja FROM joukkueet 
                 WHERE sarja IN (SELECT sarjaid FROM sarjat WHERE kilpailu = %s and sarja = %s) 
-                ORDER BY joukkue COLLATE utf8mb4_swedish_ci"""
+                ORDER BY joukkue COLLATE utf8_swedish_ci"""
             cur = con.cursor()
             cur.execute(sql,(race_id, set))
             teams = cur.fetchall()
@@ -622,7 +622,7 @@ def team(race, team):
                     WHERE s.kilpailu IN (
                         SELECT k.kisaid FROM kilpailut k 
                         WHERE k.kisa LIKE %s AND k.alkuaika LIKE %s) 
-                    ORDER BY s.sarja COLLATE utf8mb4_swedish_ci;"""
+                    ORDER BY s.sarja COLLATE utf8_swedish_ci;"""
             cur = con.cursor()
             cur.execute(sql, (race_name, race_date+"%"))        
             sarjat = cur.fetchall()
